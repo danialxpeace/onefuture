@@ -1268,7 +1268,7 @@
         <button class="ftab" onclick="setForecastTab(12)">+12H</button>
         <button class="ftab" onclick="setForecastTab(24)">+24H</button>
       </div>
-      <div id="forecastContent" style="overflow-y:auto;max-height:320px;"></div>
+      <div id="forecastContent" style="overflow-y:auto;max-height:220px;margin-bottom:8px;"></div>
       <div class="ai-confidence">
         <div class="conf-label">MODEL CONFIDENCE</div>
         <div class="conf-bar-wrap">
@@ -1276,8 +1276,11 @@
           <span class="conf-pct" id="confPct"></span>
         </div>
       </div>
-      <div class="ai-warning-box" id="aiWarningBox"></div>
-      <div class="forecast-chart" id="forecastChart"></div>
+      <div class="ai-warning-box" id="aiWarningBox" style="margin-top:8px;"></div>
+      <div style="margin-top:8px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-bottom:4px;">HOURLY FORECAST</div>
+        <div class="forecast-chart" id="forecastChart"></div>
+      </div>
     </div>
   </div>
 
@@ -1319,7 +1322,7 @@
       <div id="barChartContent"><!-- filled by JS --></div>
     </div>
 
-    <div class="section-label">Evacuation Routes</div>
+    <div class="section-label" id="routeSection">Evacuation Routes (KL)</div>
 
     <div class="route-card" id="routeList"><!-- filled by JS --></div>
 
@@ -1482,6 +1485,174 @@ const rivers = [
   { name: 'Sg. Gombak', baseLevel: 0.9, maxLevel: 3.8 },
   { name: 'Sg. Besi', baseLevel: 1.5, maxLevel: 4.2 },
 ];
+
+// ===========================
+// EVAC ROUTES DATABASE — per negeri/daerah
+// ===========================
+const evakDB = {
+  // WP / SELANGOR
+  'ampang':       [{ name:'MRR2 → KL City', detail:'Evac ke pusat bandar', status:'open' }, { name:'Jln Ampang → KLCC', detail:'Laluan utama ke KL', status:'open' }, { name:'AKLEH → Cheras', detail:'Alternatif ke selatan', status:'caution' }],
+  'kl_city':      [{ name:'DUKE → Gombak', detail:'Ke utara KL', status:'open' }, { name:'Federal Hwy → PJ', detail:'Ke barat', status:'open' }, { name:'SMART Tunnel Bypass', detail:'Kawalan banjir aktif', status:'open' }],
+  'puchong':      [{ name:'NPE → Shah Alam', detail:'Ke barat', status:'open' }, { name:'KESAS → Klang', detail:'Alternatif barat', status:'open' }, { name:'LDP → Damansara', detail:'Ke utara', status:'caution' }],
+  'kepong':       [{ name:'DUKE → Sentul', detail:'Ke selatan KL', status:'open' }, { name:'Jln Kepong → KL', detail:'Laluan utama', status:'open' }, { name:'MRR2 → Batu Caves', detail:'Ke utara', status:'open' }],
+  'setapak':      [{ name:'DUKE → KL Utara', detail:'Ke pusat KL', status:'open' }, { name:'MRR2 → Wangsa Maju', detail:'Laluan timur', status:'open' }],
+  'sg_besi':      [{ name:'Lebuhraya Sg Besi', detail:'Ke KL Selatan', status:'open' }, { name:'Jln Puchong → PJ', detail:'Ke barat', status:'open' }],
+  'rawang':       [{ name:'PLUS E1 → KL', detail:'Ke selatan KL', status:'open' }, { name:'Jln Rawang → Kepong', detail:'Laluan alternatif', status:'open' }],
+  'klang':        [{ name:'Federal Hwy → KL', detail:'Laluan utama ke KL', status:'caution' }, { name:'KESAS → Shah Alam', detail:'Ke timur', status:'open' }, { name:'NPE → PJ', detail:'Laluan alternatif', status:'open' }],
+  'petaling_jaya':[ { name:'Federal Hwy → KL', detail:'Ke timur', status:'open' }, { name:'LDP → Damansara', detail:'Ke utara', status:'open' }, { name:'NPE → Puchong', detail:'Ke selatan', status:'open' }],
+  'subang_jaya':  [{ name:'Federal Hwy → Shah Alam', detail:'Ke barat', status:'open' }, { name:'NPE → KL', detail:'Ke timur', status:'open' }],
+  'shah_alam':    [{ name:'KESAS → KL', detail:'Ke timur', status:'open' }, { name:'Federal Hwy → Klang', detail:'Ke barat', status:'caution' }, { name:'ELITE → Nilai', detail:'Ke selatan', status:'open' }],
+  'sepang':       [{ name:'ELITE → KL', detail:'Ke utara', status:'open' }, { name:'Lebuhraya KL-Seremban', detail:'Ke selatan', status:'open' }],
+  'kuala_selangor':[{ name:'LATAR → Shah Alam', detail:'Ke timur', status:'open' }, { name:'Jln Kuala Selangor → Klang', detail:'Laluan pesisir', status:'open' }],
+  'hulu_selangor': [{ name:'PLUS E1 → Rawang', detail:'Ke selatan', status:'open' }, { name:'Jln Ulu Yam → Batu Caves', detail:'Alternatif', status:'caution' }],
+  'sabak_bernam':  [{ name:'Jln Pantai → Kuala Selangor', detail:'Ke selatan', status:'open' }],
+  'bangsar':       [{ name:'Federal Hwy → PJ', detail:'Ke barat', status:'open' }, { name:'Jln Bangsar → KL Sentral', detail:'Ke pusat', status:'open' }],
+  'cheras':        [{ name:'Lebuhraya Sg Besi → KL', detail:'Ke utara', status:'open' }, { name:'MRR2 → Ampang', detail:'Ke timur laut', status:'open' }],
+  'gombak':        [{ name:'DUKE → KL', detail:'Ke selatan', status:'open' }, { name:'Jln Gombak → Batu Caves', detail:'Alternatif', status:'open' }],
+  'sg_buloh':      [{ name:'NKVE → Damansara', detail:'Ke selatan', status:'open' }, { name:'LATAR → Shah Alam', detail:'Ke barat', status:'open' }],
+  'putrajaya':     [{ name:'ELITE → KL', detail:'Ke utara', status:'open' }, { name:'SKVE → Nilai', detail:'Ke selatan', status:'open' }],
+
+  // JOHOR
+  'jb':           [{ name:'E2 PLUS → KL', detail:'Laluan utara', status:'open' }, { name:'Jln Tebrau → Kota Tinggi', detail:'Ke timur', status:'open' }, { name:'E5 → Senai', detail:'Laluan alternatif', status:'open' }],
+  'iskandar':     [{ name:'E5 → JB', detail:'Ke timur', status:'open' }, { name:'Jln Skudai → UTM', detail:'Ke utara', status:'open' }],
+  'kluang':       [{ name:'E2 → JB', detail:'Ke selatan', status:'open' }, { name:'Jln Kluang-Batu Pahat', detail:'Ke barat', status:'open' }],
+  'muar':         [{ name:'Jln Muar-Yong Peng', detail:'Ke timur E2', status:'open' }, { name:'Jln Muar-Melaka', detail:'Ke utara', status:'open' }],
+  'batu_pahat':   [{ name:'E2 → Ayer Hitam', detail:'Ke timur ke E2', status:'open' }, { name:'Jln BP-Muar', detail:'Ke utara', status:'open' }],
+  'mersing':      [{ name:'Jln Mersing-JB', detail:'Ke selatan', status:'open' }, { name:'Jln Mersing-Kuantan', detail:'Ke utara', status:'caution' }],
+  'segamat':      [{ name:'E2 → KL', detail:'Ke utara', status:'open' }, { name:'Jln Segamat-Muar', detail:'Ke selatan', status:'open' }],
+  'pontian':      [{ name:'Jln Pontian-JB', detail:'Ke timur', status:'open' }, { name:'Jln Pontian-Batu Pahat', detail:'Ke utara', status:'open' }],
+  'kota_tinggi':  [{ name:'Jln KT-JB', detail:'Ke barat', status:'open' }, { name:'Jln KT-Mersing', detail:'Ke utara', status:'caution' }],
+  'kulai':        [{ name:'E2 → JB', detail:'Ke selatan', status:'open' }, { name:'E5 → Skudai', detail:'Ke barat daya', status:'open' }],
+
+  // KEDAH
+  'alor_setar':   [{ name:'E1 → Penang', detail:'Ke selatan', status:'open' }, { name:'Jln AS-Changlun', detail:'Ke utara sempadan', status:'open' }],
+  'kota_setar':   [{ name:'E1 PLUS → Penang', detail:'Ke selatan', status:'open' }, { name:'Jln Alor Setar-Pokok Sena', detail:'Alternatif', status:'open' }],
+  'kuala_muda':   [{ name:'E1 → Sungai Petani', detail:'Ke selatan', status:'open' }, { name:'Jln Pantai → Penang', detail:'Laluan pesisir', status:'open' }],
+  'langkawi':     [{ name:'Feri ke Kuala Kedah', detail:'Laluan laut evakuasi', status:'open' }, { name:'Feri ke Penang', detail:'Alternatif laut', status:'open' }],
+  'kubang_pasu':  [{ name:'E1 → Alor Setar', detail:'Ke selatan', status:'open' }, { name:'Jln Jitra-Kangar', detail:'Ke barat laut', status:'open' }],
+  'baling':       [{ name:'Jln Baling-Sg Petani', detail:'Ke barat', status:'open' }, { name:'Jln Baling-Keroh', detail:'Ke timur', status:'caution' }],
+  'sik':          [{ name:'Jln Sik-Baling', detail:'Ke timur', status:'open' }, { name:'Jln Sik-Sg Petani', detail:'Ke barat', status:'open' }],
+  'pendang':      [{ name:'Jln Pendang-Alor Setar', detail:'Ke utara', status:'open' }],
+  'padang_terap': [{ name:'Jln Padang Terap-Alor Setar', detail:'Ke selatan', status:'open' }],
+  'yan':          [{ name:'Jln Yan-Sg Petani', detail:'Ke selatan', status:'open' }],
+
+  // KELANTAN
+  'kb':           [{ name:'E8 → KL', detail:'Laluan utama ke barat', status:'open' }, { name:'Jln KB-Pasir Mas', detail:'Ke barat daya', status:'caution' }, { name:'Lapangan Terbang KLIA', detail:'Evakuasi udara', status:'open' }],
+  'pasir_mas':    [{ name:'Jln PM-KB', detail:'Ke utara', status:'caution' }, { name:'Jln PM-Rantau Panjang', detail:'Ke sempadan', status:'open' }],
+  'tumpat':       [{ name:'Jln Tumpat-KB', detail:'Ke selatan', status:'caution' }, { name:'Feri Sungai Kelantan', detail:'Laluan laut', status:'open' }],
+  'bachok':       [{ name:'Jln Bachok-KB', detail:'Ke barat', status:'open' }, { name:'Jln Pantai Timur → KT', detail:'Ke selatan', status:'open' }],
+  'tanah_merah':  [{ name:'E8 → Gua Musang', detail:'Ke barat daya', status:'open' }, { name:'Jln TM-KB', detail:'Ke utara', status:'caution' }],
+  'machang':      [{ name:'Jln Machang-KB', detail:'Ke utara', status:'open' }, { name:'Jln Machang-Tanah Merah', detail:'Ke barat', status:'open' }],
+  'kuala_krai':   [{ name:'Jln KK-Gua Musang', detail:'Ke barat daya', status:'open' }, { name:'Jln KK-Machang', detail:'Ke utara', status:'caution' }],
+  'gua_musang':   [{ name:'E8 → KL', detail:'Ke barat', status:'open' }, { name:'Jln GM-Kuala Krai', detail:'Ke timur', status:'open' }],
+  'jeli':         [{ name:'Jln Jeli-Gua Musang', detail:'Ke selatan', status:'open' }, { name:'Jln Jeli-Tanah Merah', detail:'Ke timur', status:'open' }],
+
+  // MELAKA
+  'melaka_tengah':[{ name:'E2 → KL', detail:'Ke utara', status:'open' }, { name:'E2 → JB', detail:'Ke selatan', status:'open' }, { name:'Jln Pantai → PD', detail:'Alternatif pesisir', status:'open' }],
+  'alor_gajah':   [{ name:'E2 → Melaka', detail:'Ke selatan', status:'open' }, { name:'Jln AG-Tampin', detail:'Ke timur', status:'open' }],
+  'jasin':        [{ name:'Jln Jasin-Melaka', detail:'Ke barat', status:'open' }, { name:'Jln Jasin-Muar', detail:'Ke selatan', status:'open' }],
+
+  // NEGERI SEMBILAN
+  'seremban':     [{ name:'E2 → KL', detail:'Ke utara', status:'open' }, { name:'E2 → JB', detail:'Ke selatan', status:'open' }, { name:'Jln Seremban-PD', detail:'Ke barat daya', status:'open' }],
+  'port_dickson': [{ name:'Jln PD-Seremban', detail:'Ke timur', status:'open' }, { name:'Jln Pantai → Melaka', detail:'Ke selatan', status:'open' }],
+  'tampin':       [{ name:'E2 → Seremban', detail:'Ke utara', status:'open' }, { name:'Jln Tampin-Gemas', detail:'Ke timur', status:'open' }],
+  'kuala_pilah':  [{ name:'Jln KP-Seremban', detail:'Ke barat', status:'open' }, { name:'Jln KP-Bahau', detail:'Ke timur', status:'open' }],
+  'jempol':       [{ name:'Jln Jempol-Seremban', detail:'Ke barat', status:'open' }, { name:'Jln Jempol-Kuantan', detail:'Ke timur', status:'caution' }],
+  'rembau':       [{ name:'Jln Rembau-Seremban', detail:'Ke utara', status:'open' }],
+
+  // PAHANG
+  'kuantan':      [{ name:'E8 → KL', detail:'Ke barat', status:'open' }, { name:'Jln Pantai Timur → KT', detail:'Ke utara', status:'open' }, { name:'Jln Kuantan-Rompin', detail:'Ke selatan', status:'caution' }],
+  'temerloh':     [{ name:'E8 → KL', detail:'Ke barat', status:'open' }, { name:'Jln Temerloh-Kuantan', detail:'Ke timur', status:'caution' }],
+  'bentong':      [{ name:'E8 → KL', detail:'Ke barat', status:'open' }, { name:'Karak Hwy', detail:'Laluan laju ke KL', status:'open' }],
+  'pekan':        [{ name:'Jln Pekan-Kuantan', detail:'Ke utara', status:'open' }, { name:'Jln Pekan-Rompin', detail:'Ke selatan', status:'caution' }],
+  'rompin':       [{ name:'Jln Rompin-Kuantan', detail:'Ke utara', status:'caution' }, { name:'Jln Rompin-JB', detail:'Ke selatan', status:'open' }],
+  'maran':        [{ name:'Jln Maran-Kuantan', detail:'Ke timur', status:'open' }, { name:'Jln Maran-Temerloh', detail:'Ke barat', status:'open' }],
+  'jerantut':     [{ name:'Jln Jerantut-KL', detail:'Ke barat', status:'open' }, { name:'Jln Jerantut-Kuala Lipis', detail:'Ke utara', status:'open' }],
+  'cameron':      [{ name:'Jln Cameron-Tapah', detail:'Ke barat', status:'open' }, { name:'Jln Simpang Pulai', detail:'Laluan alternatif', status:'open' }],
+  'bera':         [{ name:'Jln Bera-Temerloh', detail:'Ke utara', status:'open' }, { name:'Jln Bera-Segamat', detail:'Ke selatan', status:'open' }],
+  'lipis':        [{ name:'Jln Lipis-Raub', detail:'Ke selatan', status:'open' }, { name:'Jln Lipis-Gua Musang', detail:'Ke utara', status:'caution' }],
+
+  // PERAK
+  'ipoh':         [{ name:'E1 → KL', detail:'Ke selatan', status:'open' }, { name:'E1 → Penang', detail:'Ke utara', status:'open' }, { name:'Jln Ipoh-Teluk Intan', detail:'Ke barat', status:'open' }],
+  'taiping':      [{ name:'E1 → Ipoh', detail:'Ke selatan', status:'open' }, { name:'Jln Taiping-Lumut', detail:'Ke barat', status:'open' }],
+  'teluk_intan':  [{ name:'Jln TI-Ipoh', detail:'Ke timur', status:'open' }, { name:'Jln TI-Klang', detail:'Ke selatan', status:'caution' }],
+  'manjung':      [{ name:'Jln Manjung-Ipoh', detail:'Ke timur', status:'open' }, { name:'Jln Lumut-Sitiawan', detail:'Pesisir', status:'open' }],
+  'kuala_kangsar':[{ name:'E1 → Ipoh', detail:'Ke selatan', status:'open' }, { name:'Jln KKgsar-Grik', detail:'Ke timur', status:'open' }],
+  'hilir_perak':  [{ name:'Jln HP-Teluk Intan', detail:'Ke utara', status:'open' }, { name:'Jln HP-Klang', detail:'Ke selatan', status:'caution' }],
+  'larut_matang': [{ name:'E1 → Taiping', detail:'Ke selatan', status:'open' }, { name:'Jln LM-Penang', detail:'Ke utara', status:'open' }],
+  'batang_padang':[{ name:'Jln BP-Ipoh', detail:'Ke utara', status:'open' }, { name:'Jln BP-Tapah', detail:'Ke selatan', status:'open' }],
+  'kinta':        [{ name:'E1 → KL', detail:'Ke selatan', status:'open' }, { name:'Jln Kinta-Ipoh', detail:'Ke selatan', status:'open' }],
+  'hulu_perak':   [{ name:'Jln HP-Gerik', detail:'Ke selatan', status:'open' }, { name:'E1 East-West Hwy', detail:'Ke Kelantan', status:'caution' }],
+  'perak_tengah': [{ name:'Jln PT-Teluk Intan', detail:'Ke selatan', status:'open' }],
+  'kampar':       [{ name:'E1 → KL', detail:'Ke selatan', status:'open' }, { name:'Jln Kampar-Ipoh', detail:'Ke utara', status:'open' }],
+
+  // PERLIS
+  'kangar':       [{ name:'E1 → Alor Setar', detail:'Ke selatan', status:'open' }, { name:'Jln Kangar-Kodiang', detail:'Ke timur', status:'open' }],
+  'arau':         [{ name:'Jln Arau-Kangar', detail:'Ke barat', status:'open' }, { name:'E1 → Alor Setar', detail:'Ke selatan', status:'open' }],
+  'padang_besar': [{ name:'Jln PB-Kangar', detail:'Ke selatan', status:'open' }],
+
+  // PULAU PINANG
+  'timur_laut':   [{ name:'Penang Bridge → Seberang Prai', detail:'Ke tanah besar', status:'open' }, { name:'PSDC → Butterworth', detail:'Laluan utama', status:'open' }, { name:'Feri Georgetown-BW', detail:'Laluan laut', status:'open' }],
+  'barat_daya':   [{ name:'Penang Bridge → KL', detail:'Ke selatan', status:'open' }, { name:'Jln Relau → Bayan Lepas', detail:'Ke selatan pulau', status:'open' }],
+  'seberang_prai_utara': [{ name:'E1 → Alor Setar', detail:'Ke utara', status:'open' }, { name:'Penang Bridge → Pulau', detail:'Ke pulau', status:'open' }],
+  'seberang_prai_tengah': [{ name:'E1 → Ipoh', detail:'Ke selatan', status:'open' }, { name:'Butterworth-Kulim Hwy', detail:'Ke timur', status:'open' }],
+  'seberang_prai_selatan': [{ name:'E1 → Ipoh', detail:'Ke selatan', status:'open' }, { name:'Jln SP-Nibong Tebal', detail:'Laluan alternatif', status:'open' }],
+
+  // SABAH
+  'kota_kinabalu':[{ name:'Pan Borneo E1 → Beaufort', detail:'Ke selatan', status:'open' }, { name:'Jln KK-Tuaran', detail:'Ke utara', status:'open' }, { name:'Lapangan Terbang KKIA', detail:'Evakuasi udara', status:'open' }],
+  'sandakan':     [{ name:'Jln Sandakan-KK', detail:'Ke barat', status:'caution' }, { name:'Lapangan Terbang SDK', detail:'Evakuasi udara', status:'open' }],
+  'tawau':        [{ name:'Jln Tawau-Lahad Datu', detail:'Ke barat', status:'open' }, { name:'Lapangan Terbang TWU', detail:'Evakuasi udara', status:'open' }],
+  'lahad_datu':   [{ name:'Jln LD-Tawau', detail:'Ke timur', status:'open' }, { name:'Jln LD-Sandakan', detail:'Ke utara', status:'caution' }],
+  'keningau':     [{ name:'Jln Keningau-KK', detail:'Ke utara', status:'open' }, { name:'Jln Keningau-Tenom', detail:'Ke selatan', status:'open' }],
+  'beaufort':     [{ name:'Pan Borneo → KK', detail:'Ke utara', status:'open' }, { name:'Jln Beaufort-Sipitang', detail:'Ke selatan', status:'open' }],
+  'kudat':        [{ name:'Jln Kudat-KK', detail:'Ke selatan', status:'open' }],
+  'ranau':        [{ name:'Jln Ranau-KK', detail:'Ke barat', status:'open' }, { name:'Jln Ranau-Sandakan', detail:'Ke timur', status:'caution' }],
+
+  // SARAWAK
+  'kuching':      [{ name:'Pan Borneo → Serian', detail:'Ke timur', status:'open' }, { name:'Jln Kuching-Lundu', detail:'Ke barat', status:'open' }, { name:'Lapangan Terbang KCH', detail:'Evakuasi udara', status:'open' }],
+  'miri':         [{ name:'Pan Borneo → Bintulu', detail:'Ke selatan', status:'open' }, { name:'Lapangan Terbang MYY', detail:'Evakuasi udara', status:'open' }],
+  'sibu':         [{ name:'Pan Borneo → Kuching', detail:'Ke selatan', status:'open' }, { name:'Feri Sungai Rajang', detail:'Laluan sungai', status:'caution' }],
+  'bintulu':      [{ name:'Pan Borneo → Miri', detail:'Ke timur', status:'open' }, { name:'Pan Borneo → Sibu', detail:'Ke barat', status:'open' }],
+  'sri_aman':     [{ name:'Jln Sri Aman-Kuching', detail:'Ke barat', status:'open' }, { name:'Feri Sg Lupar', detail:'Laluan sungai', status:'caution' }],
+  'kapit':        [{ name:'Feri Sungai Rajang → Sibu', detail:'Laluan sungai utama', status:'open' }, { name:'Helikopter evakuasi', detail:'Kawasan pedalaman', status:'open' }],
+  'sarikei':      [{ name:'Pan Borneo → Kuching', detail:'Ke barat', status:'open' }, { name:'Feri Sg Rajang', detail:'Laluan sungai', status:'open' }],
+  'limbang':      [{ name:'Jln Limbang-Lawas', detail:'Ke timur', status:'open' }, { name:'Feri ke Labuan', detail:'Laluan laut', status:'open' }],
+  'mukah':        [{ name:'Pan Borneo → Bintulu', detail:'Ke utara', status:'open' }, { name:'Pan Borneo → Sibu', detail:'Ke selatan', status:'open' }],
+  'betong':       [{ name:'Jln Betong-Sri Aman', detail:'Ke barat', status:'open' }, { name:'Feri Sg Saribas', detail:'Laluan sungai', status:'caution' }],
+  'serian':       [{ name:'Pan Borneo → Kuching', detail:'Ke barat', status:'open' }, { name:'Jln Serian-Sri Aman', detail:'Ke timur', status:'open' }],
+
+  // TERENGGANU
+  'kl_terengganu':[{ name:'Jln Pantai Timur → KB', detail:'Ke utara', status:'open' }, { name:'Jln KT-Kuantan', detail:'Ke selatan', status:'open' }, { name:'Lapangan Terbang Sultan Mahmud', detail:'Evakuasi udara', status:'open' }],
+  'kemaman':      [{ name:'Jln Kemaman-Kuantan', detail:'Ke selatan', status:'open' }, { name:'Jln Kemaman-KT', detail:'Ke utara', status:'open' }],
+  'dungun':       [{ name:'Jln Dungun-KT', detail:'Ke utara', status:'open' }, { name:'Jln Dungun-Kemaman', detail:'Ke selatan', status:'open' }],
+  'besut':        [{ name:'Jln Besut-KB', detail:'Ke barat', status:'caution' }, { name:'Jln Besut-KT', detail:'Ke selatan', status:'open' }],
+  'setiu':        [{ name:'Jln Setiu-KT', detail:'Ke selatan', status:'open' }, { name:'Jln Setiu-Besut', detail:'Ke utara', status:'open' }],
+  'hulu_terengganu':[{ name:'Jln HT-KT', detail:'Ke timur', status:'open' }, { name:'Jln HT-Gua Musang', detail:'Ke barat', status:'caution' }],
+  'marang':       [{ name:'Jln Marang-KT', detail:'Ke utara', status:'open' }, { name:'Jln Marang-Dungun', detail:'Ke selatan', status:'open' }],
+};
+
+// Fallback evac routes for districts not in DB
+function getEvakRoutes(zoneId, stateName) {
+  if (evakDB[zoneId]) return evakDB[zoneId];
+  // Generic fallback based on state
+  const fallbacks = {
+    'Johor':      [{ name:'E2 PLUS → terdekat', detail:'Lebuhraya utama Johor', status:'open' }],
+    'Kedah':      [{ name:'E1 PLUS → Penang/AS', detail:'Lebuhraya utara-selatan', status:'open' }],
+    'Kelantan':   [{ name:'E8 → KL', detail:'Lebuhraya Timur-Barat', status:'caution' }],
+    'Melaka':     [{ name:'E2 → KL/JB', detail:'Lebuhraya utama', status:'open' }],
+    'N. Sembilan':[{ name:'E2 → Seremban/KL', detail:'Lebuhraya utama', status:'open' }],
+    'Pahang':     [{ name:'E8 Karak → KL', detail:'Lebuhraya Timur', status:'open' }],
+    'Perak':      [{ name:'E1 → Ipoh/KL', detail:'Lebuhraya utara-selatan', status:'open' }],
+    'Perlis':     [{ name:'E1 → Kedah', detail:'Ke selatan', status:'open' }],
+    'P. Pinang':  [{ name:'Penang Bridge → Mainland', detail:'Ke tanah besar', status:'open' }],
+    'Sabah':      [{ name:'Pan Borneo → KK', detail:'Lebuhraya Pan Borneo', status:'open' }],
+    'Sarawak':    [{ name:'Pan Borneo → Kuching', detail:'Lebuhraya Pan Borneo', status:'open' }],
+    'Selangor':   [{ name:'Lebuhraya terdekat → KL', detail:'Laluan utama', status:'open' }],
+    'Terengganu': [{ name:'Jln Pantai Timur → selatan', detail:'Laluan pesisir', status:'open' }],
+    'W.Persekutuan':[{ name:'Lebuhraya terdekat', detail:'Laluan utama KL', status:'open' }],
+  };
+  return fallbacks[stateName] || [{ name:'Hubungi APM/BOMBA', detail:'Bantuan evakuasi rasmi', status:'open' }];
+}
 
 const evakRoutes = [
   { name: 'DUKE Highway → AKLEH', detail: 'KL City → Gombak', status: 'open' },
@@ -1903,11 +2074,13 @@ function renderZones() {
 }
 
 function selectZone(id) {
+  selectedZoneId = id;
   document.querySelectorAll('.zone-item').forEach(el => el.classList.remove('active'));
   const el = document.getElementById('zone-' + id);
   if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
   const z = zones.find(z => z.id === id);
   if (z && leafletMap) leafletMap.flyTo([z.lat, z.lng], 14, { animate: true, duration: 0.8 });
+  renderRoutes(id);
 }
 
 // ===========================
@@ -1946,7 +2119,7 @@ function updateStats(rain) {
   updateGauges(mm);
   updateBars();
   renderZones();
-  renderRoutes();
+  renderRoutes(selectedZoneId);
   if (leafletMap) renderMapLayers();
 }
 
@@ -1996,11 +2169,28 @@ function updateBars() {
 }
 
 // ===========================
-// ROUTES
+// ROUTES — per daerah
 // ===========================
-function renderRoutes() {
+let selectedZoneId = null;
+
+function renderRoutes(zoneId) {
   const list = document.getElementById('routeList');
-  list.innerHTML = evakRoutes.map((r,i) => `
+  const label = document.querySelector('.section-label[data-routes]');
+
+  let routes, zoneName = 'Malaysia';
+  if (zoneId) {
+    const z = zones.find(z => z.id === zoneId);
+    routes = getEvakRoutes(zoneId, z ? z.state : '');
+    zoneName = z ? z.name : zoneId;
+  } else {
+    routes = evakRoutes; // default KL routes
+  }
+
+  // Update section label
+  const routeSection = document.getElementById('routeSection');
+  if (routeSection) routeSection.textContent = zoneId ? `Evac Routes — ${zoneName}` : 'Evacuation Routes (KL)';
+
+  list.innerHTML = routes.map((r, i) => `
     <div class="route-item">
       <div class="route-num">${i+1}</div>
       <div class="route-info">
