@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FloodGuard KL 2050 — Smart Flood Response System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+  :root {
+    --bg-deep: #020c18;
+    --bg-panel: #040f1e;
+    --bg-card: #071629;
+    --border: #0d3a5c;
+    --accent-cyan: #00e5ff;
+    --accent-blue: #1a7fe8;
+    --accent-orange: #ff6b35;
+    --accent-red: #ff2d55;
+    --accent-yellow: #ffd600;
+    --accent-green: #00e676;
+    --text-primary: #e0f4ff;
+    --text-secondary: #6baed6;
+    --text-dim: #2a5a7a;
+    --glow-cyan: 0 0 20px rgba(0,229,255,0.4);
+    --glow-red: 0 0 20px rgba(255,45,85,0.5);
+    --glow-green: 0 0 20px rgba(0,230,118,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(4,15,30,0.95);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    position: relative;
+  }
+
+  .logo-icon svg { width: 100%; height: 100%; }
+
+  .logo-text {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid var(--accent-green);
+    border-radius: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-green);
+    letter-spacing: 1px;
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: var(--glow-green);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .live-clock {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+  }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main-layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: 1fr;
+    height: calc(100vh - 64px);
+    gap: 0;
+  }
+
+  /* ===== SIDEBAR LEFT ===== */
+  .sidebar-left {
+    border-right: 1px solid var(--border);
+    background: var(--bg-panel);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .sidebar-left::-webkit-scrollbar { width: 4px; }
+  .sidebar-left::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-left::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  /* Rain Slider */
+  .rain-control {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .rain-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .rain-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  .rain-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  .rain-unit {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent-cyan) 0%, var(--accent-cyan) 30%, var(--border) 30%);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 10px var(--accent-cyan);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .rain-levels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .rain-level-item {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  /* Alert Level Card */
+  .alert-card {
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid;
+    transition: all 0.4s ease;
+  }
+
+  .alert-card.normal { border-color: var(--accent-green); background: rgba(0,230,118,0.05); }
+  .alert-card.watch { border-color: var(--accent-yellow); background: rgba(255,214,0,0.05); }
+  .alert-card.warning { border-color: var(--accent-orange); background: rgba(255,107,53,0.07); }
+  .alert-card.danger { border-color: var(--accent-red); background: rgba(255,45,85,0.08); animation: danger-pulse 1s infinite; }
+
+  @keyframes danger-pulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: var(--glow-red); }
+  }
+
+  .alert-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .alert-card.normal .alert-title { color: var(--accent-green); }
+  .alert-card.watch .alert-title { color: var(--accent-yellow); }
+  .alert-card.warning .alert-title { color: var(--accent-orange); }
+  .alert-card.danger .alert-title { color: var(--accent-red); }
+
+  .alert-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Zone List */
+  .zone-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+  }
+
+  .zone-item:hover {
+    border-color: var(--accent-cyan);
+    background: rgba(0,229,255,0.05);
+  }
+
+  .zone-item.active {
+    border-color: var(--accent-cyan);
+    background: rgba(0,229,255,0.08);
+    box-shadow: 0 0 10px rgba(0,229,255,0.15);
+  }
+
+  .zone-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .zone-area {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .zone-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .badge-safe { background: rgba(0,230,118,0.15); color: var(--accent-green); border: 1px solid rgba(0,230,118,0.3); }
+  .badge-watch { background: rgba(255,214,0,0.15); color: var(--accent-yellow); border: 1px solid rgba(255,214,0,0.3); }
+  .badge-flood { background: rgba(255,45,85,0.15); color: var(--accent-red); border: 1px solid rgba(255,45,85,0.3); }
+  .badge-risk { background: rgba(255,107,53,0.15); color: var(--accent-orange); border: 1px solid rgba(255,107,53,0.3); }
+
+  /* ===== MAP CENTER ===== */
+  .map-container {
+    position: relative;
+    background: var(--bg-deep);
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Dark filter on OSM tiles */
+  .leaflet-tile-pane {
+    filter: brightness(0.35) saturate(0.4) hue-rotate(185deg) contrast(1.1);
+  }
+
+  .leaflet-control-zoom a {
+    background: rgba(4,15,30,0.9) !important;
+    border-color: var(--border) !important;
+    color: var(--accent-cyan) !important;
+    font-family: 'Orbitron', monospace !important;
+  }
+
+  .leaflet-control-zoom a:hover {
+    background: rgba(0,229,255,0.1) !important;
+  }
+
+  .leaflet-control-attribution {
+    background: rgba(2,12,24,0.7) !important;
+    color: #2a5a7a !important;
+    font-size: 9px !important;
+  }
+
+  /* Map overlays */
+  .map-overlay-top {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    gap: 8px;
+  }
+
+  .map-btn {
+    padding: 8px 16px;
+    background: rgba(4,15,30,0.9);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+  }
+
+  .map-btn:hover, .map-btn.active {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(0,229,255,0.08);
+    box-shadow: 0 0 10px rgba(0,229,255,0.2);
+  }
+
+  .map-legend {
+    position: absolute;
+    bottom: 30px;
+    left: 16px;
+    z-index: 1000;
+    background: rgba(4,15,30,0.92);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    backdrop-filter: blur(10px);
+  }
+
+  .legend-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+
+  /* ===== SIDEBAR RIGHT ===== */
+  .sidebar-right {
+    border-left: 1px solid var(--border);
+    background: var(--bg-panel);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .sidebar-right::-webkit-scrollbar { width: 4px; }
+  .sidebar-right::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .stat-card:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 15px rgba(0,229,255,0.1);
+  }
+
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .stat-card.red .stat-value { color: var(--accent-red); text-shadow: var(--glow-red); }
+  .stat-card.orange .stat-value { color: var(--accent-orange); }
+  .stat-card.green .stat-value { color: var(--accent-green); text-shadow: var(--glow-green); }
+
+  /* Chart Bar */
+  .bar-chart {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .bar-chart-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .bar-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .bar-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    width: 30px;
+    text-align: right;
+  }
+
+  /* Routes */
+  .route-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .route-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .route-item:last-child { border-bottom: none; }
+
+  .route-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--accent-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--accent-cyan);
+    flex-shrink: 0;
+  }
+
+  .route-info { flex: 1; }
+
+  .route-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+
+  .route-detail {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+
+  .route-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .route-open { background: rgba(0,230,118,0.1); color: var(--accent-green); border: 1px solid rgba(0,230,118,0.3); }
+  .route-caution { background: rgba(255,214,0,0.1); color: var(--accent-yellow); border: 1px solid rgba(255,214,0,0.3); }
+  .route-closed { background: rgba(255,45,85,0.1); color: var(--accent-red); border: 1px solid rgba(255,45,85,0.3); }
+
+  /* Alerts Feed */
+  .alerts-feed {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 180px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 24px;
+  }
+
+  .alerts-feed::-webkit-scrollbar { width: 3px; }
+  .alerts-feed::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .alert-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(13,58,92,0.5);
+    animation: slideIn 0.4s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .alert-item:first-child { padding-top: 0; }
+  .alert-item:last-child { border-bottom: none; }
+
+  .alert-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .alert-content { flex: 1; }
+
+  .alert-msg {
+    font-size: 11px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 3px;
+  }
+
+  .alert-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 1100px) {
+    .main-layout { grid-template-columns: 240px 1fr 260px; }
+  }
+
+  /* Water level gauge */
+  .gauge-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .gauge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .gauge-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .gauge-bar-wrap {
+    position: relative;
+    height: 20px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    flex: 1;
+    margin: 0 10px;
+  }
+
+  .gauge-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease, background 0.5s ease;
+    position: relative;
+  }
+
+  .gauge-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 3px;
+    background: white;
+    opacity: 0.5;
+    animation: shimmer 1s infinite;
+  }
+
+  @keyframes shimmer { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+
+  .gauge-pct {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    width: 38px;
+    text-align: right;
+  }
+
+
+
+  /* ===== NEW MODE BUTTONS ===== */
+  .map-btn-rain { border-color: #4fc3f7 !important; color: #4fc3f7 !important; }
+  .map-btn-rain.panel-open { background: rgba(79,195,247,0.15) !important; box-shadow: 0 0 12px rgba(79,195,247,0.3) !important; }
+  .map-btn-ai { border-color: #ce93d8 !important; color: #ce93d8 !important; }
+  .map-btn-ai.panel-open { background: rgba(206,147,216,0.15) !important; box-shadow: 0 0 12px rgba(206,147,216,0.3) !important; }
+
+  /* ===== SIDE PANELS ===== */
+  .side-panel {
+    position: absolute;
+    top: 60px;
+    right: 16px;
+    width: 300px;
+    max-height: calc(100vh - 140px);
+    background: rgba(4,15,30,0.97);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    z-index: 1001;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0,229,255,0.05);
+    animation: panelIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .side-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .side-panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: 1px;
+  }
+
+  .panel-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .panel-close:hover { color: var(--accent-red); }
+
+  .side-panel-body {
+    padding: 14px 16px 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .side-panel-body::-webkit-scrollbar { width: 4px; }
+  .side-panel-body::-webkit-scrollbar-track { background: transparent; }
+  .side-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ===== RADAR GRID ===== */
+  .radar-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 2px;
+    height: 130px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .radar-cell {
+    border-radius: 1px;
+    transition: background 1.2s ease;
+  }
+
+  .rain-gradient-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #071629, #1565c0, #4fc3f7, #ffd600, #ff6b35, #ff2d55);
+    margin-top: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .rain-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .rain-stat-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .rain-stat-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+
+  .rain-stat-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  .panel-timestamp {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .live-badge {
+    color: var(--accent-green);
+    font-size: 9px;
+    letter-spacing: 1px;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* ===== AI FORECAST ===== */
+  .ai-model-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: #ce93d8;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding: 5px 8px;
+    background: rgba(206,147,216,0.08);
+    border: 1px solid rgba(206,147,216,0.2);
+    border-radius: 4px;
+  }
+
+  .forecast-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .ftab {
+    flex: 1;
+    padding: 5px 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .ftab:hover { border-color: #ce93d8; color: #ce93d8; }
+  .ftab.active { background: rgba(206,147,216,0.15); border-color: #ce93d8; color: #ce93d8; }
+
+  .forecast-zone-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(13,58,92,0.5);
+    font-size: 11px;
+  }
+
+  .forecast-zone-row:last-child { border-bottom: none; }
+
+  .fz-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    width: 90px;
+    font-size: 11px;
+  }
+
+  .fz-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 0 8px;
+    overflow: hidden;
+  }
+
+  .fz-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+  .fz-risk {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    width: 48px;
+    text-align: right;
+  }
+
+  .ai-confidence {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .conf-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .conf-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 10px;
+    background: var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .conf-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(to right, #ce93d8, #9c27b0);
+    transition: width 0.8s ease;
+  }
+
+  .conf-pct {
+    position: absolute;
+    right: 8px;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    color: white;
+    font-weight: 700;
+  }
+
+  .ai-warning-box {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    min-height: 0;
+  }
+
+  .ai-warning-box.warn-danger {
+    background: rgba(255,45,85,0.08);
+    border: 1px solid rgba(255,45,85,0.3);
+    color: #ff6b8a;
+  }
+
+  .ai-warning-box.warn-caution {
+    background: rgba(255,214,0,0.06);
+    border: 1px solid rgba(255,214,0,0.25);
+    color: #ffd600;
+  }
+
+  .ai-warning-box.warn-ok {
+    background: rgba(0,230,118,0.06);
+    border: 1px solid rgba(0,230,118,0.25);
+    color: #00e676;
+  }
+
+  .forecast-chart {
+    margin-top: 10px;
+    height: 60px;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  .fc-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .fc-bar {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.6s ease;
+    min-height: 3px;
+  }
+
+  .fc-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  /* Search Bar */
+  .search-wrap {
+    margin-bottom: 8px;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text-primary);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .search-wrap input::placeholder { color: var(--text-dim); }
+
+  .search-wrap input:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 10px rgba(0,229,255,0.15);
+  }
+
+  /* State Filter */
+  .state-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+    max-height: 80px;
+    overflow-y: auto;
+  }
+
+  .state-filter::-webkit-scrollbar { height: 3px; width: 3px; }
+  .state-filter::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .state-btn {
+    padding: 3px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+
+  .state-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .state-btn.active { background: rgba(0,229,255,0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+  /* Zone count badge */
+  .zone-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    text-align: right;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  /* Leaflet tooltip custom style */
+  .flood-tooltip-inner {
+    background: rgba(4,15,30,0.95) !important;
+    border: 1px solid #0d3a5c !important;
+    border-radius: 6px !important;
+    color: #e0f4ff !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 0 20px rgba(0,229,255,0.15) !important;
+  }
+
+  .flood-tooltip-inner::before { display: none !important; }
+
+  /* Leaflet zoom controls */
+  .leaflet-control-zoom {
+    border: 1px solid #0d3a5c !important;
+    border-radius: 4px !important;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 36 36" fill="none">
+        <polygon points="18,3 33,28 3,28" stroke="#00e5ff" stroke-width="1.5" fill="none" opacity="0.5"/>
+        <polygon points="18,8 29,26 7,26" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+        <path d="M10 22 Q14 16 18 20 Q22 24 26 18" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+        <circle cx="18" cy="20" r="2" fill="#00e5ff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">FLOODGUARD</div>
+      <div class="logo-sub">MALAYSIA 2050 · Smart Flood Response System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="pulse-dot" id="systemDot"></div>
+      <span id="systemStatus">SYSTEM ONLINE</span>
+    </div>
+    <div class="live-clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="main-layout">
+
+  <!-- SIDEBAR LEFT -->
+  <div class="sidebar-left">
+    <div class="section-label">Rainfall Simulation</div>
+
+    <div class="rain-control">
+      <div class="rain-header">
+        <div class="rain-label">RAINFALL INTENSITY</div>
+        <div><span class="rain-value" id="rainVal">30</span><span class="rain-unit"> mm/hr</span></div>
+      </div>
+      <input type="range" id="rainSlider" min="0" max="200" value="30" oninput="updateRain(this.value)">
+      <div class="rain-levels">
+        <div class="rain-level-item">CLEAR<br>0</div>
+        <div class="rain-level-item">LIGHT<br>25</div>
+        <div class="rain-level-item">MOD<br>75</div>
+        <div class="rain-level-item">HEAVY<br>125</div>
+        <div class="rain-level-item">EXTREME<br>200</div>
+      </div>
+    </div>
+
+    <div class="alert-card" id="alertCard">
+      <div class="alert-title" id="alertTitle">● NORMAL</div>
+      <div class="alert-desc" id="alertDesc">Rainfall within safe parameters. All monitoring stations operational.</div>
+    </div>
+
+    <div class="section-label">Monitored Zones</div>
+
+    <!-- Search Bar -->
+    <div class="search-wrap">
+      <input type="text" id="searchBar" placeholder="🔍  Cari daerah / negeri..." oninput="filterZones()" autocomplete="off">
+    </div>
+
+    <!-- State Filter -->
+    <div class="state-filter" id="stateFilter">
+      <button class="state-btn active" onclick="setStateFilter('ALL')">ALL</button>
+    </div>
+
+    <div class="zone-count" id="zoneCountBadge">— DAERAH</div>
+
+    <div id="zoneList">
+      <!-- Zones filled by JS -->
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-container">
+    <div id="map"></div>
+
+    <div class="map-overlay-top">
+      <button class="map-btn active" onclick="setLayer('flood')" id="btn-flood">🌊 FLOOD ZONES</button>
+      <button class="map-btn" onclick="setLayer('routes')" id="btn-routes">🛣️ EVAC ROUTES</button>
+      <button class="map-btn" onclick="setLayer('stations')" id="btn-stations">📡 STATIONS</button>
+      <button class="map-btn map-btn-rain" onclick="togglePanel('rain')" id="btn-rain">🌧️ LIVE RAIN</button>
+      <button class="map-btn map-btn-ai" onclick="togglePanel('ai')" id="btn-ai">🤖 AI FORECAST</button>
+    </div>
+
+    <!-- LIVE RAIN PANEL -->
+    <div class="side-panel" id="panel-rain" style="display:none">
+      <div class="side-panel-header">
+        <span class="side-panel-title">🌧️ LIVE RAINFALL RADAR</span>
+        <button class="panel-close" onclick="togglePanel('rain')">✕</button>
+      </div>
+      <div class="side-panel-body">
+        <div class="radar-grid" id="radarGrid"></div>
+        <div class="rain-legend-row">
+          <span style="color:var(--text-dim);font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:1px">INTENSITY (mm/hr)</span>
+          <div class="rain-gradient-bar"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px">
+            <span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace">0</span>
+            <span style="font-size:9px;color:#4fc3f7;font-family:'Share Tech Mono',monospace">25</span>
+            <span style="font-size:9px;color:#ffd600;font-family:'Share Tech Mono',monospace">75</span>
+            <span style="font-size:9px;color:#ff6b35;font-family:'Share Tech Mono',monospace">125</span>
+            <span style="font-size:9px;color:#ff2d55;font-family:'Share Tech Mono',monospace">200+</span>
+          </div>
+        </div>
+        <div class="rain-stats-row" id="rainStatsRow"></div>
+        <div class="panel-timestamp">
+          <span id="radarTimestamp"></span>
+          <span class="live-badge">● LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI FORECAST PANEL -->
+    <div class="side-panel" id="panel-ai" style="display:none">
+      <div class="side-panel-header">
+        <span class="side-panel-title">🤖 AI FLOOD FORECAST</span>
+        <button class="panel-close" onclick="togglePanel('ai')">✕</button>
+      </div>
+      <div class="side-panel-body">
+        <div class="ai-model-badge">MODEL: FloodNet-KL v2.4 · Updated <span id="aiUpdateTime"></span></div>
+        <div class="forecast-tabs">
+          <button class="ftab active" onclick="setForecastTab(1)">+1H</button>
+          <button class="ftab" onclick="setForecastTab(3)">+3H</button>
+          <button class="ftab" onclick="setForecastTab(6)">+6H</button>
+          <button class="ftab" onclick="setForecastTab(12)">+12H</button>
+          <button class="ftab" onclick="setForecastTab(24)">+24H</button>
+        </div>
+        <div id="forecastContent"></div>
+        <div class="ai-confidence">
+          <div class="conf-label">MODEL CONFIDENCE</div>
+          <div class="conf-bar-wrap">
+            <div class="conf-bar-fill" id="confBar"></div>
+            <span class="conf-pct" id="confPct"></span>
+          </div>
+        </div>
+        <div class="ai-warning-box" id="aiWarningBox"></div>
+        <div class="forecast-chart" id="forecastChart"></div>
+      </div>
+    </div>
+
+    <div class="map-legend" id="mapLegend">
+      <div class="legend-title">FLOOD RISK LEVEL</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff2d55"></div> Critical / Flooded</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div> High Risk</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd600"></div> Watch Zone</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00e676"></div> Safe Zone</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR RIGHT -->
+  <div class="sidebar-right">
+    <div class="section-label">Live Statistics</div>
+
+    <div class="stats-grid">
+      <div class="stat-card red">
+        <div class="stat-value" id="statFlooded">2</div>
+        <div class="stat-label">Zones Flooded</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-value" id="statRisk">3</div>
+        <div class="stat-label">At Risk</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statPop">142K</div>
+        <div class="stat-label">Pop. Affected</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-value" id="statRoutes">5</div>
+        <div class="stat-label">Routes Open</div>
+      </div>
+    </div>
+
+    <div class="section-label">Water Level — Gauges</div>
+
+    <div class="gauge-container">
+      <div class="gauge-row" style="margin-bottom:14px">
+        <span style="font-family:'Orbitron',monospace;font-size:10px;color:var(--text-secondary);letter-spacing:1px;">RIVER STATIONS</span>
+      </div>
+      <div id="gaugeList"><!-- filled by JS --></div>
+    </div>
+
+    <div class="section-label">Flood Risk by Area</div>
+
+    <div class="bar-chart">
+      <div id="barChartContent"><!-- filled by JS --></div>
+    </div>
+
+    <div class="section-label">Evacuation Routes</div>
+
+    <div class="route-card" id="routeList"><!-- filled by JS --></div>
+
+    <div class="section-label">Alert Feed</div>
+
+    <div class="alerts-feed" id="alertFeed"><!-- filled by JS --></div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// DATA
+// ===========================
+const zones = [
+  // ── SELANGOR ──
+  { id:'klang',      name:'Klang',         state:'Selangor', lat:3.044,  lng:101.444, risk:0, pop:744000, floodRisk:3 },
+  { id:'petaling',   name:'Petaling Jaya',  state:'Selangor', lat:3.107,  lng:101.606, risk:0, pop:638000, floodRisk:2 },
+  { id:'sg_buloh',   name:'Sg. Buloh',       state:'Selangor', lat:3.202,  lng:101.577, risk:0, pop:218000, floodRisk:2 },
+  { id:'rawang',     name:'Rawang',          state:'Selangor', lat:3.317,  lng:101.573, risk:0, pop:189000, floodRisk:2 },
+  { id:'gombak',     name:'Gombak',          state:'Selangor', lat:3.230,  lng:101.720, risk:0, pop:310000, floodRisk:3 },
+  { id:'ampang_sel', name:'Ampang',          state:'Selangor', lat:3.148,  lng:101.762, risk:0, pop:232000, floodRisk:3 },
+  { id:'puchong',    name:'Puchong',         state:'Selangor', lat:3.027,  lng:101.623, risk:0, pop:330000, floodRisk:3 },
+  { id:'subang',     name:'Subang Jaya',     state:'Selangor', lat:3.054,  lng:101.589, risk:0, pop:709000, floodRisk:2 },
+  { id:'shah_alam',  name:'Shah Alam',       state:'Selangor', lat:3.073,  lng:101.518, risk:0, pop:541000, floodRisk:2 },
+  { id:'sepang',     name:'Sepang',          state:'Selangor', lat:2.861,  lng:101.711, risk:0, pop:212000, floodRisk:2 },
+  { id:'kuala_sel',  name:'Kuala Selangor',  state:'Selangor', lat:3.342,  lng:101.256, risk:0, pop:121000, floodRisk:3 },
+  { id:'hulu_sel',   name:'Hulu Selangor',   state:'Selangor', lat:3.510,  lng:101.662, risk:0, pop:122000, floodRisk:2 },
+  { id:'sabak',      name:'Sabak Bernam',    state:'Selangor', lat:3.766,  lng:100.973, risk:0, pop:88000,  floodRisk:3 },
+
+  // ── KUALA LUMPUR ──
+  { id:'kl_city',    name:'KL City Centre',  state:'W.P. KL',  lat:3.148,  lng:101.693, risk:0, pop:186000, floodRisk:2 },
+  { id:'kepong',     name:'Kepong',          state:'W.P. KL',  lat:3.208,  lng:101.637, risk:0, pop:143000, floodRisk:2 },
+  { id:'setapak',    name:'Setapak',         state:'W.P. KL',  lat:3.193,  lng:101.715, risk:0, pop:118000, floodRisk:2 },
+  { id:'sg_besi',    name:'Sg. Besi',        state:'W.P. KL',  lat:3.083,  lng:101.706, risk:0, pop:87000,  floodRisk:2 },
+  { id:'bangsar',    name:'Bangsar',         state:'W.P. KL',  lat:3.130,  lng:101.680, risk:0, pop:54000,  floodRisk:1 },
+  { id:'cheras',     name:'Cheras',          state:'W.P. KL',  lat:3.083,  lng:101.744, risk:0, pop:133000, floodRisk:2 },
+
+  // ── PUTRAJAYA ──
+  { id:'putrajaya',  name:'Putrajaya',       state:'W.P. Putrajaya', lat:2.926, lng:101.696, risk:0, pop:109000, floodRisk:1 },
+
+  // ── JOHOR ──
+  { id:'jb',         name:'Johor Bahru',     state:'Johor',    lat:1.492,  lng:103.741, risk:0, pop:498000, floodRisk:3 },
+  { id:'iskandar',   name:'Iskandar Puteri', state:'Johor',    lat:1.428,  lng:103.636, risk:0, pop:380000, floodRisk:2 },
+  { id:'kluang',     name:'Kluang',          state:'Johor',    lat:2.022,  lng:103.319, risk:0, pop:175000, floodRisk:2 },
+  { id:'muar',       name:'Muar',            state:'Johor',    lat:2.044,  lng:102.568, risk:0, pop:189000, floodRisk:3 },
+  { id:'batu_pahat', name:'Batu Pahat',      state:'Johor',    lat:1.854,  lng:102.932, risk:0, pop:244000, floodRisk:3 },
+  { id:'mersing',    name:'Mersing',         state:'Johor',    lat:2.439,  lng:103.836, risk:0, pop:74000,  floodRisk:2 },
+  { id:'segamat',    name:'Segamat',         state:'Johor',    lat:2.515,  lng:102.816, risk:0, pop:147000, floodRisk:2 },
+  { id:'pontian',    name:'Pontian',         state:'Johor',    lat:1.478,  lng:103.388, risk:0, pop:109000, floodRisk:2 },
+  { id:'kota_tinggi',name:'Kota Tinggi',     state:'Johor',    lat:1.740,  lng:103.900, risk:0, pop:153000, floodRisk:3 },
+  { id:'kulai',      name:'Kulai',           state:'Johor',    lat:1.659,  lng:103.599, risk:0, pop:206000, floodRisk:2 },
+
+  // ── KEDAH ──
+  { id:'alor_setar', name:'Alor Setar',      state:'Kedah',    lat:6.125,  lng:100.367, risk:0, pop:176000, floodRisk:3 },
+  { id:'sik',        name:'Sik',             state:'Kedah',    lat:5.810,  lng:100.749, risk:0, pop:55000,  floodRisk:2 },
+  { id:'kuala_muda', name:'Kuala Muda',      state:'Kedah',    lat:5.697,  lng:100.466, risk:0, pop:183000, floodRisk:3 },
+  { id:'kota_setar', name:'Kota Setar',      state:'Kedah',    lat:6.126,  lng:100.366, risk:0, pop:352000, floodRisk:3 },
+  { id:'kubang_pasu',name:'Kubang Pasu',     state:'Kedah',    lat:6.432,  lng:100.517, risk:0, pop:167000, floodRisk:2 },
+  { id:'langkawi',   name:'Langkawi',        state:'Kedah',    lat:6.350,  lng:99.800,  risk:0, pop:99000,  floodRisk:1 },
+  { id:'padang_terap',name:'Padang Terap',   state:'Kedah',    lat:6.146,  lng:100.748, risk:0, pop:64000,  floodRisk:2 },
+  { id:'baling',     name:'Baling',          state:'Kedah',    lat:5.680,  lng:100.920, risk:0, pop:104000, floodRisk:2 },
+  { id:'pendang',    name:'Pendang',         state:'Kedah',    lat:5.985,  lng:100.495, risk:0, pop:83000,  floodRisk:2 },
+  { id:'yan',        name:'Yan',             state:'Kedah',    lat:5.796,  lng:100.362, risk:0, pop:52000,  floodRisk:3 },
+
+  // ── KELANTAN ──
+  { id:'kb',         name:'Kota Bharu',      state:'Kelantan', lat:6.125,  lng:102.238, risk:0, pop:343000, floodRisk:4 },
+  { id:'pasir_mas',  name:'Pasir Mas',       state:'Kelantan', lat:6.045,  lng:102.133, risk:0, pop:169000, floodRisk:4 },
+  { id:'tumpat',     name:'Tumpat',          state:'Kelantan', lat:6.198,  lng:102.170, risk:0, pop:125000, floodRisk:4 },
+  { id:'bachok',     name:'Bachok',          state:'Kelantan', lat:6.065,  lng:102.395, risk:0, pop:107000, floodRisk:3 },
+  { id:'machang',    name:'Machang',         state:'Kelantan', lat:5.769,  lng:102.218, risk:0, pop:84000,  floodRisk:3 },
+  { id:'tanah_merah',name:'Tanah Merah',     state:'Kelantan', lat:5.811,  lng:102.150, risk:0, pop:117000, floodRisk:3 },
+  { id:'gua_musang', name:'Gua Musang',      state:'Kelantan', lat:4.882,  lng:101.969, risk:0, pop:74000,  floodRisk:2 },
+  { id:'kuala_krai', name:'Kuala Krai',      state:'Kelantan', lat:5.531,  lng:102.199, risk:0, pop:97000,  floodRisk:3 },
+  { id:'jeli',       name:'Jeli',            state:'Kelantan', lat:5.701,  lng:101.840, risk:0, pop:42000,  floodRisk:2 },
+
+  // ── MELAKA ──
+  { id:'melaka_tengah',name:'Melaka Tengah', state:'Melaka',   lat:2.196,  lng:102.240, risk:0, pop:346000, floodRisk:2 },
+  { id:'alor_gajah', name:'Alor Gajah',     state:'Melaka',   lat:2.381,  lng:102.210, risk:0, pop:166000, floodRisk:2 },
+  { id:'jasin',      name:'Jasin',          state:'Melaka',   lat:2.311,  lng:102.439, risk:0, pop:102000, floodRisk:2 },
+
+  // ── NEGERI SEMBILAN ──
+  { id:'seremban',   name:'Seremban',        state:'N. Sembilan', lat:2.729, lng:101.938, risk:0, pop:360000, floodRisk:2 },
+  { id:'port_dickson',name:'Port Dickson',   state:'N. Sembilan', lat:2.524, lng:101.797, risk:0, pop:113000, floodRisk:2 },
+  { id:'rembau',     name:'Rembau',          state:'N. Sembilan', lat:2.592, lng:102.094, risk:0, pop:39000,  floodRisk:1 },
+  { id:'tampin',     name:'Tampin',          state:'N. Sembilan', lat:2.468, lng:102.225, risk:0, pop:66000,  floodRisk:2 },
+  { id:'kuala_pilah',name:'Kuala Pilah',     state:'N. Sembilan', lat:2.737, lng:102.249, risk:0, pop:65000,  floodRisk:2 },
+  { id:'jempol',     name:'Jempol',          state:'N. Sembilan', lat:3.027, lng:102.516, risk:0, pop:75000,  floodRisk:2 },
+
+  // ── PAHANG ──
+  { id:'kuantan',    name:'Kuantan',         state:'Pahang',   lat:3.813,  lng:103.326, risk:0, pop:392000, floodRisk:3 },
+  { id:'temerloh',   name:'Temerloh',        state:'Pahang',   lat:3.449,  lng:102.418, risk:0, pop:113000, floodRisk:3 },
+  { id:'bentong',    name:'Bentong',         state:'Pahang',   lat:3.519,  lng:101.913, risk:0, pop:97000,  floodRisk:2 },
+  { id:'cameron',    name:'Cameron Highlands',state:'Pahang',  lat:4.471,  lng:101.380, risk:0, pop:35000,  floodRisk:1 },
+  { id:'pekan',      name:'Pekan',           state:'Pahang',   lat:3.488,  lng:103.391, risk:0, pop:103000, floodRisk:3 },
+  { id:'rompin',     name:'Rompin',          state:'Pahang',   lat:2.793,  lng:103.492, risk:0, pop:70000,  floodRisk:3 },
+  { id:'maran',      name:'Maran',           state:'Pahang',   lat:3.579,  lng:102.758, risk:0, pop:66000,  floodRisk:2 },
+  { id:'jerantut',   name:'Jerantut',        state:'Pahang',   lat:3.936,  lng:102.360, risk:0, pop:72000,  floodRisk:2 },
+  { id:'bera',       name:'Bera',            state:'Pahang',   lat:3.174,  lng:102.577, risk:0, pop:61000,  floodRisk:2 },
+  { id:'lipis',      name:'Kuala Lipis',     state:'Pahang',   lat:4.183,  lng:102.050, risk:0, pop:56000,  floodRisk:2 },
+
+  // ── PERAK ──
+  { id:'ipoh',       name:'Ipoh',            state:'Perak',    lat:4.598,  lng:101.075, risk:0, pop:758000, floodRisk:2 },
+  { id:'taiping',    name:'Taiping',         state:'Perak',    lat:4.852,  lng:100.729, risk:0, pop:239000, floodRisk:2 },
+  { id:'teluk_intan',name:'Teluk Intan',     state:'Perak',    lat:4.022,  lng:101.021, risk:0, pop:115000, floodRisk:3 },
+  { id:'manjung',    name:'Manjung',         state:'Perak',    lat:4.188,  lng:100.630, risk:0, pop:224000, risk:0, floodRisk:2 },
+  { id:'kuala_kangsar',name:'Kuala Kangsar', state:'Perak',    lat:4.774,  lng:100.933, risk:0, pop:99000,  floodRisk:2 },
+  { id:'kampar',     name:'Kampar',          state:'Perak',    lat:4.305,  lng:101.149, risk:0, pop:98000,  floodRisk:1 },
+  { id:'hulu_perak', name:'Hulu Perak',      state:'Perak',    lat:5.297,  lng:101.137, risk:0, pop:76000,  floodRisk:2 },
+  { id:'larut',      name:'Larut & Matang',  state:'Perak',    lat:4.855,  lng:100.728, risk:0, pop:233000, floodRisk:2 },
+
+  // ── PERLIS ──
+  { id:'kangar',     name:'Kangar',          state:'Perlis',   lat:6.444,  lng:100.198, risk:0, pop:72000,  floodRisk:3 },
+  { id:'padang_besar',name:'Padang Besar',   state:'Perlis',   lat:6.644,  lng:100.308, risk:0, pop:28000,  floodRisk:2 },
+  { id:'arau',       name:'Arau',            state:'Perlis',   lat:6.427,  lng:100.273, risk:0, pop:20000,  floodRisk:2 },
+
+  // ── PULAU PINANG ──
+  { id:'pg_island',  name:'Pulau Pinang',    state:'P. Pinang',lat:5.414,  lng:100.329, risk:0, pop:752000, floodRisk:2 },
+  { id:'seberang',   name:'Seberang Perai Utara', state:'P. Pinang', lat:5.584, lng:100.398, risk:0, pop:420000, floodRisk:2 },
+  { id:'sp_tengah',  name:'Seberang Perai Tengah', state:'P. Pinang', lat:5.347, lng:100.476, risk:0, pop:338000, floodRisk:2 },
+  { id:'sp_selatan', name:'Seberang Perai Selatan', state:'P. Pinang', lat:5.166, lng:100.468, risk:0, pop:202000, floodRisk:3 },
+
+  // ── SABAH ──
+  { id:'kk',         name:'Kota Kinabalu',   state:'Sabah',    lat:5.980,  lng:116.074, risk:0, pop:452000, floodRisk:2 },
+  { id:'sandakan',   name:'Sandakan',        state:'Sabah',    lat:5.840,  lng:118.117, risk:0, pop:392000, floodRisk:3 },
+  { id:'tawau',      name:'Tawau',           state:'Sabah',    lat:4.247,  lng:117.891, risk:0, pop:390000, floodRisk:2 },
+  { id:'lahad_datu', name:'Lahad Datu',      state:'Sabah',    lat:5.022,  lng:118.327, risk:0, pop:199000, floodRisk:2 },
+  { id:'keningau',   name:'Keningau',        state:'Sabah',    lat:5.337,  lng:116.162, risk:0, pop:197000, floodRisk:2 },
+  { id:'beaufort',   name:'Beaufort',        state:'Sabah',    lat:5.351,  lng:115.748, risk:0, pop:73000,  floodRisk:3 },
+  { id:'kudat',      name:'Kudat',           state:'Sabah',    lat:6.887,  lng:116.836, risk:0, pop:75000,  floodRisk:2 },
+  { id:'semporna',   name:'Semporna',        state:'Sabah',    lat:4.479,  lng:118.609, risk:0, pop:176000, floodRisk:2 },
+
+  // ── SARAWAK ──
+  { id:'kuching',    name:'Kuching',         state:'Sarawak',  lat:1.553,  lng:110.360, risk:0, pop:634000, floodRisk:3 },
+  { id:'miri',       name:'Miri',            state:'Sarawak',  lat:4.399,  lng:113.990, risk:0, pop:349000, floodRisk:2 },
+  { id:'sibu',       name:'Sibu',            state:'Sarawak',  lat:2.289,  lng:111.824, risk:0, pop:247000, floodRisk:3 },
+  { id:'bintulu',    name:'Bintulu',         state:'Sarawak',  lat:3.168,  lng:113.035, risk:0, pop:184000, floodRisk:2 },
+  { id:'sri_aman',   name:'Sri Aman',        state:'Sarawak',  lat:1.238,  lng:111.461, risk:0, pop:75000,  floodRisk:3 },
+  { id:'kapit',      name:'Kapit',           state:'Sarawak',  lat:2.013,  lng:112.933, risk:0, pop:72000,  floodRisk:2 },
+  { id:'sarikei',    name:'Sarikei',         state:'Sarawak',  lat:2.133,  lng:111.520, risk:0, pop:87000,  floodRisk:3 },
+  { id:'limbang',    name:'Limbang',         state:'Sarawak',  lat:4.754,  lng:115.006, risk:0, pop:55000,  floodRisk:2 },
+
+  // ── TERENGGANU ──
+  { id:'kl_terengganu',name:'Kuala Terengganu', state:'Terengganu', lat:5.328, lng:103.138, risk:0, pop:343000, floodRisk:3 },
+  { id:'kemaman',    name:'Kemaman',         state:'Terengganu', lat:4.232, lng:103.418, risk:0, pop:170000, floodRisk:3 },
+  { id:'dungun',     name:'Dungun',          state:'Terengganu', lat:4.761, lng:103.416, risk:0, pop:110000, floodRisk:3 },
+  { id:'besut',      name:'Besut',           state:'Terengganu', lat:5.695, lng:102.553, risk:0, pop:128000, floodRisk:3 },
+  { id:'setiu',      name:'Setiu',           state:'Terengganu', lat:5.510, lng:102.791, risk:0, pop:85000,  floodRisk:2 },
+  { id:'hulu_terengganu',name:'Hulu Terengganu', state:'Terengganu', lat:4.903, lng:102.685, risk:0, pop:47000, floodRisk:2 },
+  { id:'marang',     name:'Marang',          state:'Terengganu', lat:5.202, lng:103.213, risk:0, pop:81000,  floodRisk:3 },
+];
+
+// Unique states list
+const allStates = ['ALL', ...new Set(zones.map(z => z.state))];
+let activeStateFilter = 'ALL';
+let searchQuery = '';
+
+const rivers = [
+  { name: 'Sg. Ampang', baseLevel: 1.2, maxLevel: 4.5 },
+  { name: 'Sg. Klang', baseLevel: 2.1, maxLevel: 6.0 },
+  { name: 'Sg. Gombak', baseLevel: 0.9, maxLevel: 3.8 },
+  { name: 'Sg. Besi', baseLevel: 1.5, maxLevel: 4.2 },
+];
+
+const evakRoutes = [
+  { name: 'DUKE Highway → AKLEH', detail: 'KL City → Gombak', status: 'open' },
+  { name: 'Jalan Ampang → KLCC', detail: 'Ampang → City Centre', status: 'open' },
+  { name: 'MRR2 → Pandan', detail: 'Ampang → Pandan Indah', status: 'caution' },
+  { name: 'NPE → Puchong Utama', detail: 'Puchong → Shah Alam', status: 'open' },
+  { name: 'Federal Highway', detail: 'Klang → KL', status: 'closed' },
+  { name: 'KESAS → Shah Alam', detail: 'Puchong → Western KL', status: 'open' },
+];
+
+const alertMessages = [
+  { msg: 'Sg. Ampang water level rising — monitor activated', type: 'orange', time: '2 min ago' },
+  { msg: 'Puchong residential area advisory issued', type: 'yellow', time: '8 min ago' },
+  { msg: 'SMART Tunnel activated for excess flow management', type: 'cyan', time: '15 min ago' },
+  { msg: 'All monitoring stations nominal — system check complete', type: 'green', time: '31 min ago' },
+  { msg: 'JPS early warning broadcast to affected barangay', type: 'cyan', time: '45 min ago' },
+  { msg: 'Evacuation centre Dewan Ampang placed on standby', type: 'orange', time: '52 min ago' },
+];
+
+const dotColors = { red: '#ff2d55', orange: '#ff6b35', yellow: '#ffd600', cyan: '#00e5ff', green: '#00e676' };
+
+// ===========================
+// LEAFLET MAP SETUP
+// ===========================
+let leafletMap, currentLayer = 'flood';
+let floodCircles = [], routeLines = [], stationMarkers = [];
+
+function getZoneColor(risk) {
+  if (risk >= 4) return '#ff2d55';
+  if (risk >= 3) return '#ff6b35';
+  if (risk >= 2) return '#ffd600';
+  if (risk >= 1) return '#4fc3f7';
+  return '#00e676';
+}
+
+// Real KL evacuation route coordinates [lat, lng] — traced along actual roads
+const evakRouteCoords = [
+  { // DUKE Highway — from KL City towards Gombak/Batu Caves
+    name: 'DUKE Highway → Gombak',
+    coords: [
+      [3.148,101.693],[3.155,101.698],[3.163,101.700],
+      [3.172,101.703],[3.182,101.700],[3.193,101.696],[3.205,101.690]
+    ],
+    statusIdx: 0
+  },
+  { // Jalan Ampang → KLCC (east to city)
+    name: 'Jalan Ampang → KLCC',
+    coords: [
+      [3.148,101.762],[3.149,101.748],[3.149,101.733],
+      [3.150,101.720],[3.149,101.708],[3.148,101.693]
+    ],
+    statusIdx: 1
+  },
+  { // MRR2 — Ampang area south towards Pandan/Cheras
+    name: 'MRR2 → Pandan Indah',
+    coords: [
+      [3.148,101.762],[3.138,101.755],[3.128,101.748],
+      [3.118,101.742],[3.108,101.738],[3.100,101.730]
+    ],
+    statusIdx: 2
+  },
+  { // NPE — Puchong towards Subang/Shah Alam
+    name: 'NPE → Subang / Shah Alam',
+    coords: [
+      [3.027,101.623],[3.032,101.600],[3.038,101.575],
+      [3.042,101.548],[3.048,101.520],[3.052,101.495]
+    ],
+    statusIdx: 3
+  },
+  { // Federal Highway — Klang to KL (follows actual highway alignment)
+    name: 'Federal Highway (Klang → KL)',
+    coords: [
+      [3.044,101.444],[3.048,101.468],[3.053,101.494],
+      [3.060,101.520],[3.068,101.548],[3.078,101.572],
+      [3.090,101.598],[3.103,101.622],[3.115,101.645],
+      [3.127,101.660],[3.138,101.673],[3.148,101.693]
+    ],
+    statusIdx: 4
+  },
+  { // KESAS — Puchong towards Shah Alam
+    name: 'KESAS → Shah Alam',
+    coords: [
+      [3.027,101.623],[3.018,101.600],[3.010,101.575],
+      [3.005,101.550],[3.000,101.522],[2.996,101.498]
+    ],
+    statusIdx: 5
+  },
+];
+
+// River paths for overlay [lat, lng] — corrected real coordinates
+const riverOverlays = [
+  { name: 'Sg. Klang', coords: [
+    [3.044,101.444],[3.058,101.490],[3.072,101.530],[3.090,101.568],
+    [3.108,101.605],[3.125,101.638],[3.140,101.662],[3.148,101.693]
+  ]},
+  { name: 'Sg. Gombak', coords: [
+    [3.230,101.695],[3.210,101.695],[3.193,101.696],[3.175,101.695],
+    [3.162,101.694],[3.150,101.693],[3.148,101.693]
+  ]},
+  { name: 'Sg. Ampang', coords: [
+    [3.160,101.800],[3.156,101.778],[3.153,101.762],[3.151,101.740],
+    [3.149,101.718],[3.148,101.693]
+  ]},
+  { name: 'Sg. Besi', coords: [
+    [3.035,101.708],[3.055,101.707],[3.075,101.706],[3.095,101.700],
+    [3.115,101.697],[3.130,101.695],[3.148,101.693]
+  ]},
+];
+
+let riverPolylines = [];
+
+function initMap() {
+  leafletMap = L.map('map', {
+    center: [4.2, 109.5],
+    zoom: 6,
+    zoomControl: true,
+    attributionControl: true,
+  });
+
+  // OSM tiles with dark CSS filter applied via CSS
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 18,
+  }).addTo(leafletMap);
+
+  // Draw river overlays permanently
+  riverOverlays.forEach(r => {
+    // Subtle glow
+    L.polyline(r.coords, {
+      color: '#1565c0',
+      weight: 6,
+      opacity: 0.2,
+    }).addTo(leafletMap);
+    // Main river line
+    const line = L.polyline(r.coords, {
+      color: '#42a5f5',
+      weight: 2.5,
+      opacity: 0.55,
+    }).addTo(leafletMap);
+    line.bindTooltip(`<b style="color:#42a5f5">${r.name}</b>`, { className: 'flood-tooltip-inner' });
+    riverPolylines.push(line);
+  });
+
+  renderMapLayers();
+}
+
+function clearMapLayers() {
+  floodCircles.forEach(l => leafletMap.removeLayer(l));
+  routeLines.forEach(l => leafletMap.removeLayer(l));
+  stationMarkers.forEach(m => leafletMap.removeLayer(m));
+  floodCircles = []; routeLines = []; stationMarkers = [];
+}
+
+function renderMapLayers() {
+  clearMapLayers();
+
+  if (currentLayer === 'flood' || currentLayer === 'routes') {
+    zones.forEach(zone => {
+      const color = getZoneColor(zone.risk);
+      const radiusM = 5000 + (zone.pop / 1000) * 80;
+
+      // Flood zone circle
+      const circle = L.circle([zone.lat, zone.lng], {
+        color: color,
+        fillColor: color,
+        fillOpacity: zone.risk >= 3 ? 0.30 : zone.risk >= 1 ? 0.12 : 0.06,
+        weight: zone.risk >= 3 ? 3 : 1.5,
+        radius: radiusM,
+      }).addTo(leafletMap);
+
+      circle.bindTooltip(`
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.6">
+          <b style="font-family:'Orbitron',monospace;color:${color}">${zone.name}</b><br>
+          Status: <span style="color:${color}">${['SAFE','WATCH','CAUTION','HIGH RISK','FLOODED'][zone.risk]}</span><br>
+          Population: ${(zone.pop/1000).toFixed(0)}K<br>
+          Area: ${zone.area}
+        </div>
+      `, { className: 'flood-tooltip-inner', sticky: true });
+
+      circle.on('click', () => selectZone(zone.id));
+      floodCircles.push(circle);
+
+      // Pulse outer ring for critical zones
+      if (zone.risk >= 3) {
+        const outer = L.circle([zone.lat, zone.lng], {
+          color: color,
+          fillColor: 'transparent',
+          fillOpacity: 0,
+          weight: 1.5,
+          opacity: 0.4,
+          radius: radiusM * 1.5,
+          dashArray: '6,6',
+        }).addTo(leafletMap);
+        floodCircles.push(outer);
+      }
+
+      // Zone label marker
+      const labelIcon = L.divIcon({
+        html: `<div style="
+          font-family:'Orbitron',monospace;
+          font-size:${9 + zone.risk}px;
+          font-weight:700;
+          color:${color};
+          text-shadow:0 0 8px ${color},0 0 16px ${color}88,0 1px 3px #000;
+          white-space:nowrap;
+          pointer-events:none;
+          text-align:center;
+        ">${zone.name}<br><span style="font-size:8px;opacity:0.8;letter-spacing:1px">${['','WATCH','CAUTION','HIGH','⚠ FLOOD'][zone.risk]}</span></div>`,
+        className: '',
+        iconAnchor: [0, 0],
+      });
+      const lm = L.marker([zone.lat + 0.008, zone.lng], { icon: labelIcon, interactive: false }).addTo(leafletMap);
+      floodCircles.push(lm);
+    });
+  }
+
+  if (currentLayer === 'routes') {
+    evakRouteCoords.forEach((route, i) => {
+      const status = evakRoutes[i] ? evakRoutes[i].status : 'open';
+      const color = status === 'open' ? '#00e676' : status === 'caution' ? '#ffd600' : '#ff2d55';
+      const dash = status === 'caution' ? '10,6' : status === 'closed' ? '5,5' : null;
+
+      // Glow layer
+      const glow = L.polyline(route.coords, {
+        color: color,
+        weight: 12,
+        opacity: 0.15,
+      }).addTo(leafletMap);
+      routeLines.push(glow);
+
+      // Main route line
+      const line = L.polyline(route.coords, {
+        color: color,
+        weight: 4,
+        opacity: 0.9,
+        dashArray: dash,
+      }).addTo(leafletMap);
+
+      line.bindTooltip(`
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px">
+          <b style="font-family:'Orbitron',monospace;color:${color}">${route.name}</b><br>
+          Status: <span style="color:${color}">${status.toUpperCase()}</span>
+        </div>
+      `, { className: 'flood-tooltip-inner', sticky: true });
+
+      routeLines.push(line);
+
+      // Direction arrow at midpoint
+      const midIdx = Math.floor(route.coords.length / 2);
+      const midPt = route.coords[midIdx];
+      const arrowIcon = L.divIcon({
+        html: `<div style="
+          width:20px;height:20px;
+          background:${color};
+          border:2px solid white;
+          border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          font-size:10px;
+          box-shadow:0 0 8px ${color};
+        ">→</div>`,
+        className: '',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+      const am = L.marker(midPt, { icon: arrowIcon }).addTo(leafletMap);
+      routeLines.push(am);
+    });
+
+    // Also show flood zones underneath
+    zones.forEach(zone => {
+      const color = getZoneColor(zone.risk);
+      const c = L.circle([zone.lat, zone.lng], {
+        color: color, fillColor: color,
+        fillOpacity: 0.08, weight: 1, opacity: 0.4,
+        radius: 800 + (zone.pop/1000)*30,
+      }).addTo(leafletMap);
+      floodCircles.push(c);
+    });
+  }
+
+  if (currentLayer === 'stations') {
+    zones.forEach(zone => {
+      const color = getZoneColor(zone.risk);
+      const icon = L.divIcon({
+        html: `<div style="position:relative;width:32px;height:32px">
+          <div style="
+            position:absolute;top:50%;left:50%;
+            transform:translate(-50%,-50%);
+            width:14px;height:14px;
+            background:${color};
+            border:2.5px solid white;
+            border-radius:50%;
+            box-shadow:0 0 12px ${color},0 0 24px ${color}66;
+          "></div>
+          <div style="
+            position:absolute;top:50%;left:50%;
+            transform:translate(-50%,-50%);
+            width:28px;height:28px;
+            border:1px solid ${color}66;
+            border-radius:50%;
+            animation:none;
+          "></div>
+        </div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+      const m = L.marker([zone.lat, zone.lng], { icon }).addTo(leafletMap);
+      m.bindTooltip(`
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.6">
+          <b style="font-family:'Orbitron',monospace;color:${color}">📡 ${zone.name}</b><br>
+          Risk Level: <span style="color:${color}">${['SAFE','WATCH','CAUTION','HIGH','CRITICAL'][zone.risk]}</span><br>
+          Population: ${(zone.pop/1000).toFixed(0)}K residents
+        </div>
+      `, { className: 'flood-tooltip-inner' });
+      m.on('click', () => selectZone(zone.id));
+      stationMarkers.push(m);
+    });
+  }
+}
+
+function setLayer(layer) {
+  currentLayer = layer;
+  document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + layer).classList.add('active');
+  renderMapLayers();
+}
+
+// ===========================
+// ZONE RENDER + FILTER
+// ===========================
+function initStateFilter() {
+  const container = document.getElementById('stateFilter');
+  container.innerHTML = allStates.map(s => `
+    <button class="state-btn ${s === 'ALL' ? 'active' : ''}" onclick="setStateFilter('${s}')">${s}</button>
+  `).join('');
+}
+
+const stateCenters = {
+  'ALL':          { lat: 4.2, lng: 109.5, zoom: 6 },
+  'W.Persekutuan':{ lat: 3.148, lng: 101.693, zoom: 12 },
+  'Selangor':     { lat: 3.2, lng: 101.5, zoom: 10 },
+  'Johor':        { lat: 1.9, lng: 103.2, zoom: 9 },
+  'Kedah':        { lat: 6.0, lng: 100.5, zoom: 9 },
+  'Kelantan':     { lat: 5.5, lng: 102.1, zoom: 9 },
+  'Melaka':       { lat: 2.2, lng: 102.2, zoom: 10 },
+  'N. Sembilan':  { lat: 2.7, lng: 102.0, zoom: 10 },
+  'Pahang':       { lat: 3.7, lng: 102.5, zoom: 8 },
+  'Perak':        { lat: 4.5, lng: 101.0, zoom: 9 },
+  'Perlis':       { lat: 6.5, lng: 100.2, zoom: 11 },
+  'P. Pinang':    { lat: 5.4, lng: 100.3, zoom: 11 },
+  'Sabah':        { lat: 5.5, lng: 117.0, zoom: 8 },
+  'Sarawak':      { lat: 2.5, lng: 113.0, zoom: 7 },
+  'Terengganu':   { lat: 5.3, lng: 102.8, zoom: 9 },
+};
+
+function setStateFilter(state) {
+  activeStateFilter = state;
+  document.querySelectorAll('.state-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === state);
+  });
+  renderZones();
+  // Pan map to state
+  const c = stateCenters[state] || stateCenters['ALL'];
+  if (leafletMap) leafletMap.flyTo([c.lat, c.lng], c.zoom, { animate: true, duration: 1.2 });
+}
+
+function filterZones() {
+  searchQuery = document.getElementById('searchBar').value.toLowerCase().trim();
+  renderZones();
+}
+
+function getFilteredZones() {
+  return zones.filter(z => {
+    const matchState = activeStateFilter === 'ALL' || z.state === activeStateFilter;
+    const matchSearch = !searchQuery ||
+      z.name.toLowerCase().includes(searchQuery) ||
+      z.state.toLowerCase().includes(searchQuery);
+    return matchState && matchSearch;
+  });
+}
+
+function renderZones() {
+  const list = document.getElementById('zoneList');
+  const filtered = getFilteredZones();
+
+  // Zone count
+  const countEl = document.getElementById('zoneCountBadge');
+  if (countEl) countEl.textContent = `${filtered.length} / ${zones.length} DAERAH`;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:20px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim)">Tiada daerah dijumpai</div>`;
+    return;
+  }
+
+  // Group by state
+  const byState = {};
+  filtered.forEach(z => {
+    if (!byState[z.state]) byState[z.state] = [];
+    byState[z.state].push(z);
+  });
+
+  list.innerHTML = Object.entries(byState).map(([state, stateZones]) => `
+    <div style="margin-bottom:8px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;padding:4px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px">${state}</div>
+      ${stateZones.map(z => `
+        <div class="zone-item" id="zone-${z.id}" onclick="selectZone('${z.id}')">
+          <div>
+            <div class="zone-name">${z.name}</div>
+            <div class="zone-area">Pop: ${(z.pop/1000).toFixed(0)}K</div>
+          </div>
+          <div class="zone-badge ${['badge-safe','badge-watch','badge-risk','badge-risk','badge-flood'][z.risk]}">
+            ${['SAFE','WATCH','CAUTION','HIGH','FLOOD'][z.risk]}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function selectZone(id) {
+  document.querySelectorAll('.zone-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('zone-' + id);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  const z = zones.find(z => z.id === id);
+  if (z && leafletMap) leafletMap.flyTo([z.lat, z.lng], 14, { animate: true, duration: 0.8 });
+}
+
+// ===========================
+// STATS UPDATE
+// ===========================
+function updateStats(rain) {
+  const mm = parseInt(rain);
+
+  // Update zone risks based on each zone's individual flood susceptibility
+  zones.forEach(z => {
+    const base = z.floodRisk || 2;
+    if (mm < 25) z.risk = Math.max(0, base - 2);
+    else if (mm < 50) z.risk = Math.max(0, base - 1);
+    else if (mm < 100) z.risk = Math.min(4, base);
+    else if (mm < 150) z.risk = Math.min(4, base + 1);
+    else z.risk = Math.min(4, base + 2);
+  });
+
+  const flooded = zones.filter(z => z.risk >= 4).length;
+  const atRisk = zones.filter(z => z.risk >= 2 && z.risk < 4).length;
+  const totalPop = zones.filter(z => z.risk >= 2).reduce((s,z) => s + z.pop, 0);
+  const openRoutes = evakRoutes.filter(r => r.status === 'open').length;
+
+  document.getElementById('statFlooded').textContent = flooded;
+  document.getElementById('statRisk').textContent = atRisk;
+  document.getElementById('statPop').textContent = totalPop >= 1000000
+    ? (totalPop/1000000).toFixed(1)+'M'
+    : totalPop > 1000 ? (totalPop/1000).toFixed(0)+'K' : totalPop;
+  document.getElementById('statRoutes').textContent = openRoutes;
+
+  // Update route statuses based on rain
+  evakRoutes[4].status = mm > 100 ? 'closed' : 'open';
+  evakRoutes[2].status = mm > 60 ? 'caution' : 'open';
+  evakRoutes[1].status = mm > 140 ? 'closed' : 'open';
+
+  updateGauges(mm);
+  updateBars();
+  renderZones();
+  renderRoutes();
+  if (leafletMap) renderMapLayers();
+}
+
+// ===========================
+// GAUGES
+// ===========================
+function updateGauges(mm) {
+  const gaugeList = document.getElementById('gaugeList');
+  gaugeList.innerHTML = rivers.map(r => {
+    const level = Math.min(r.maxLevel, r.baseLevel + (mm / 200) * r.maxLevel * 0.9);
+    const pct = Math.min(100, (level / r.maxLevel) * 100);
+    const color = pct > 80 ? '#ff2d55' : pct > 60 ? '#ff6b35' : pct > 40 ? '#ffd600' : '#00e676';
+    return `
+      <div class="gauge-row">
+        <span class="gauge-name">${r.name}</span>
+        <div class="gauge-bar-wrap">
+          <div class="gauge-bar-fill" style="width:${pct}%;background:${color};"></div>
+        </div>
+        <span class="gauge-pct" style="color:${color}">${level.toFixed(1)}m</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===========================
+// BAR CHART — Top risk zones
+// ===========================
+function updateBars() {
+  const content = document.getElementById('barChartContent');
+  // Show top 8 highest-risk zones across all Malaysia
+  const topZones = [...zones]
+    .sort((a,b) => b.risk - a.risk || b.floodRisk - a.floodRisk)
+    .slice(0, 8);
+  content.innerHTML = topZones.map(z => {
+    const pct = [0, 25, 50, 75, 100][z.risk];
+    const color = ['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'][z.risk];
+    return `
+      <div class="bar-row">
+        <span class="bar-name" title="${z.state}">${z.name}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <span class="bar-pct" style="color:${color}">${pct}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===========================
+// ROUTES
+// ===========================
+function renderRoutes() {
+  const list = document.getElementById('routeList');
+  list.innerHTML = evakRoutes.map((r,i) => `
+    <div class="route-item">
+      <div class="route-num">${i+1}</div>
+      <div class="route-info">
+        <div class="route-name">${r.name}</div>
+        <div class="route-detail">${r.detail}</div>
+      </div>
+      <span class="route-status route-${r.status}">${r.status.toUpperCase()}</span>
+    </div>
+  `).join('');
+}
+
+// ===========================
+// ALERTS FEED
+// ===========================
+function renderAlerts() {
+  const feed = document.getElementById('alertFeed');
+  feed.innerHTML = alertMessages.map(a => `
+    <div class="alert-item">
+      <div class="alert-dot" style="background:${dotColors[a.type] || '#00e5ff'}"></div>
+      <div class="alert-content">
+        <div class="alert-msg">${a.msg}</div>
+        <div class="alert-time">${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===========================
+// RAIN SLIDER HANDLER
+// ===========================
+function updateRain(val) {
+  const mm = parseInt(val);
+  document.getElementById('rainVal').textContent = mm;
+
+  // Update slider gradient
+  const pct = (mm / 200) * 100;
+  const color = mm < 25 ? '#00e676' : mm < 75 ? '#ffd600' : mm < 125 ? '#ff6b35' : '#ff2d55';
+  document.getElementById('rainSlider').style.background =
+    `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, var(--border) ${pct}%)`;
+
+  // Update alert card
+  const alertCard = document.getElementById('alertCard');
+  const alertTitle = document.getElementById('alertTitle');
+  const alertDesc = document.getElementById('alertDesc');
+
+  alertCard.className = 'alert-card';
+  if (mm < 25) {
+    alertCard.classList.add('normal');
+    alertTitle.textContent = '● NORMAL';
+    alertDesc.textContent = 'Rainfall within safe parameters. All monitoring stations operational.';
+    document.getElementById('systemDot').style.background = 'var(--accent-green)';
+    document.getElementById('systemStatus').textContent = 'SYSTEM ONLINE';
+  } else if (mm < 75) {
+    alertCard.classList.add('watch');
+    alertTitle.textContent = '▲ WATCH';
+    alertDesc.textContent = 'Light to moderate rainfall detected. Some low-lying areas on advisory.';
+    document.getElementById('systemDot').style.background = 'var(--accent-yellow)';
+    document.getElementById('systemStatus').textContent = 'WATCH ACTIVE';
+  } else if (mm < 125) {
+    alertCard.classList.add('warning');
+    alertTitle.textContent = '⚠ WARNING';
+    alertDesc.textContent = 'Heavy rainfall. Flood-prone areas should prepare for evacuation. SMART Tunnel activated.';
+    document.getElementById('systemDot').style.background = 'var(--accent-orange)';
+    document.getElementById('systemStatus').textContent = 'WARNING ISSUED';
+  } else {
+    alertCard.classList.add('danger');
+    alertTitle.textContent = '🚨 DANGER';
+    alertDesc.textContent = 'EXTREME RAINFALL — Immediate evacuation required for high-risk zones. Emergency services deployed.';
+    document.getElementById('systemDot').style.background = 'var(--accent-red)';
+    document.getElementById('systemStatus').textContent = 'EMERGENCY ACTIVE';
+
+    // Add emergency alert to feed
+    if (!alertMessages[0].msg.startsWith('⚠️')) {
+      alertMessages.unshift({ msg: '⚠️ EMERGENCY: Evacuation order issued for Ampang & Klang flood zones', type: 'red', time: 'Just now' });
+    }
+  }
+
+  updateStats(mm);
+  renderAlerts();
+}
+
+// ===========================
+// PANEL TOGGLE
+// ===========================
+let activePanels = { rain: false, ai: false };
+let forecastHour = 1;
+let radarInterval = null;
+
+function togglePanel(type) {
+  const panel = document.getElementById('panel-' + type);
+  const btn = document.getElementById('btn-' + type);
+  activePanels[type] = !activePanels[type];
+
+  if (activePanels[type]) {
+    panel.style.display = 'block';
+    btn.classList.add('panel-open');
+    if (type === 'rain') initRadar();
+    if (type === 'ai') initForecast(forecastHour);
+  } else {
+    panel.style.display = 'none';
+    btn.classList.remove('panel-open');
+    if (type === 'rain' && radarInterval) { clearInterval(radarInterval); radarInterval = null; }
+  }
+}
+
+// ===========================
+// LIVE RAIN RADAR
+// ===========================
+const klZoneNames = [
+  'Rawang','Kepong','Batu Caves','Gombak','Hulu Klang',
+  'Setapak','Wangsa Maju','Ampang',
+  'KL Utara','Sentul','KL Pusat','KLCC','Cheras','Pandan',
+  'Pj Utara','Pj Selatan','Subang','KL Selatan','Seri Petaling','Cheras S',
+  'Shah Alam','Klang U','Klang S','Puchong U','Puchong S','Cyberjaya','Sepang','Nilai',
+  'Port Klang','—','—','—','—','—','—','—','—','—','—','—','—','—','—','—','—','—','—','—','—'
+];
+
+function rainColor(mm) {
+  if (mm === 0) return 'rgba(7,22,41,0.6)';
+  if (mm < 10) return 'rgba(21,101,192,0.5)';
+  if (mm < 25) return 'rgba(79,195,247,0.6)';
+  if (mm < 50) return 'rgba(100,221,23,0.65)';
+  if (mm < 75) return 'rgba(255,214,0,0.7)';
+  if (mm < 125) return 'rgba(255,107,53,0.75)';
+  return 'rgba(255,45,85,0.85)';
+}
+
+function generateRadarData(baseMm) {
+  const cells = 48;
+  return Array.from({ length: cells }, (_, i) => {
+    const noise = (Math.random() - 0.5) * baseMm * 0.8;
+    const regional = Math.sin(i * 0.7) * baseMm * 0.3;
+    return Math.max(0, Math.min(200, baseMm + noise + regional));
+  });
+}
+
+function initRadar() {
+  const grid = document.getElementById('radarGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 48; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'radar-cell';
+    cell.id = 'rcell-' + i;
+    cell.title = klZoneNames[i] || '';
+    grid.appendChild(cell);
+  }
+  updateRadar();
+  if (!radarInterval) radarInterval = setInterval(updateRadar, 3000);
+}
+
+function updateRadar() {
+  const baseMm = parseInt(document.getElementById('rainSlider').value);
+  const data = generateRadarData(baseMm);
+  const now = new Date();
+
+  data.forEach((mm, i) => {
+    const cell = document.getElementById('rcell-' + i);
+    if (cell) cell.style.background = rainColor(mm);
+  });
+
+  const maxMm = Math.max(...data).toFixed(0);
+  const avgMm = (data.reduce((a,b) => a+b,0) / data.length).toFixed(0);
+  const activeZones = data.filter(d => d > 25).length;
+
+  document.getElementById('rainStatsRow').innerHTML = `
+    <div class="rain-stat-item">
+      <div class="rain-stat-val" style="color:#ff6b35">${maxMm}</div>
+      <div class="rain-stat-lbl">MAX mm/hr</div>
+    </div>
+    <div class="rain-stat-item">
+      <div class="rain-stat-val" style="color:#4fc3f7">${avgMm}</div>
+      <div class="rain-stat-lbl">AVG mm/hr</div>
+    </div>
+    <div class="rain-stat-item">
+      <div class="rain-stat-val" style="color:#ffd600">${activeZones}</div>
+      <div class="rain-stat-lbl">ACTIVE CELLS</div>
+    </div>
+    <div class="rain-stat-item">
+      <div class="rain-stat-val" style="color:#00e676">${48 - activeZones}</div>
+      <div class="rain-stat-lbl">CLEAR CELLS</div>
+    </div>
+  `;
+
+  document.getElementById('radarTimestamp').textContent =
+    'Last scan: ' + now.toLocaleTimeString('en-MY', { hour12: false });
+}
+
+// ===========================
+// AI FORECAST
+// ===========================
+const forecastProfiles = {
+  1:  { mult: 1.0, conf: 94, label: '1-Hour Outlook' },
+  3:  { mult: 1.15, conf: 87, label: '3-Hour Outlook' },
+  6:  { mult: 1.3, conf: 78, label: '6-Hour Outlook' },
+  12: { mult: 1.5, conf: 65, label: '12-Hour Outlook' },
+  24: { mult: 1.7, conf: 51, label: '24-Hour Outlook' },
+};
+
+function setForecastTab(h) {
+  forecastHour = h;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  initForecast(h);
+}
+
+function initForecast(h) {
+  const baseMm = parseInt(document.getElementById('rainSlider').value);
+  const profile = forecastProfiles[h];
+  const now = new Date();
+
+  document.getElementById('aiUpdateTime').textContent =
+    now.toLocaleTimeString('en-MY', { hour12: false });
+
+  // Per-zone forecast risk
+  const content = document.getElementById('forecastContent');
+  content.innerHTML = zones.map(zone => {
+    const baseRisk = zone.risk;
+    const projRisk = Math.min(4, Math.round(baseRisk * profile.mult + (baseMm > 100 ? 0.5 : 0)));
+    const pct = [0,25,50,75,100][projRisk];
+    const color = ['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'][projRisk];
+    const label = ['SAFE','WATCH','CAUTION','HIGH','FLOOD'][projRisk];
+    return `
+      <div class="forecast-zone-row">
+        <span class="fz-name">${zone.name}</span>
+        <div class="fz-bar-wrap"><div class="fz-bar" style="width:${pct}%;background:${color}"></div></div>
+        <span class="fz-risk" style="color:${color}">${label}</span>
+      </div>`;
+  }).join('');
+
+  // Confidence bar
+  document.getElementById('confBar').style.width = profile.conf + '%';
+  document.getElementById('confPct').textContent = profile.conf + '%';
+
+  // Warning box
+  const warnBox = document.getElementById('aiWarningBox');
+  const maxProjRisk = Math.min(4, Math.max(...zones.map(z => z.risk)) + (h >= 6 ? 1 : 0));
+  if (baseMm > 100 || maxProjRisk >= 4) {
+    warnBox.className = 'ai-warning-box warn-danger';
+    warnBox.innerHTML = `⚠️ <b>HIGH FLOOD PROBABILITY</b><br>Model predicts critical flooding in ${h}h. Immediate evacuation recommended for Puchong & Klang.`;
+  } else if (baseMm > 50 || maxProjRisk >= 2) {
+    warnBox.className = 'ai-warning-box warn-caution';
+    warnBox.innerHTML = `▲ <b>ELEVATED RISK</b><br>Moderate flood risk projected over next ${h}h. Monitor low-lying zones.`;
+  } else {
+    warnBox.className = 'ai-warning-box warn-ok';
+    warnBox.innerHTML = `✓ <b>CONDITIONS STABLE</b><br>No significant flood risk projected for the next ${h}h under current rainfall.`;
+  }
+
+  // Mini hourly bar chart
+  const chartEl = document.getElementById('forecastChart');
+  const hours = Array.from({ length: 8 }, (_, i) => {
+    const futureRain = Math.max(0, baseMm * (1 + (Math.random()-0.4) * 0.5 * profile.mult));
+    return { time: `+${(i+1)}h`, mm: Math.min(200, futureRain) };
+  });
+  const maxMm = Math.max(...hours.map(h => h.mm), 1);
+  chartEl.innerHTML = hours.map(hh => {
+    const pct = (hh.mm / maxMm) * 100;
+    const c = hh.mm < 25 ? '#00e676' : hh.mm < 75 ? '#ffd600' : hh.mm < 125 ? '#ff6b35' : '#ff2d55';
+    return `<div class="fc-bar-wrap">
+      <div class="fc-bar" style="height:${pct}%;background:${c};width:100%"></div>
+      <span class="fc-time">${hh.time}</span>
+    </div>`;
+  }).join('');
+}
+
+// ===========================
+// CLOCK
+// ===========================
+function updateClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-MY', { hour12: false });
+  document.getElementById('clock').textContent = t + ' MYT';
+}
+
+// ===========================
+// INIT
+// ===========================
+window.addEventListener('DOMContentLoaded', () => {
+  initStateFilter();
+  initMap();
+  updateRain(30);
+  renderAlerts();
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Auto-add alerts over time
+  const rotatingAlerts = [
+    { msg: 'JPS Monitoring: All sensor nodes nominal', type: 'green', time: 'Just now' },
+    { msg: 'Upstream water level at Sg. Selangor increasing', type: 'orange', time: 'Just now' },
+    { msg: 'BOMBA standby units mobilised to Ampang sector', type: 'cyan', time: 'Just now' },
+    { msg: 'Drainage Infrastructure: Pump stations at 67% capacity', type: 'yellow', time: 'Just now' },
+  ];
+  let alertIdx = 0;
+  setInterval(() => {
+    if (alertMessages.length > 10) alertMessages.pop();
+    alertMessages.unshift({ ...rotatingAlerts[alertIdx % rotatingAlerts.length], time: 'Just now' });
+    // Update previous times
+    alertMessages.forEach((a, i) => {
+      if (i > 0) {
+        const mins = i * 3;
+        a.time = mins < 60 ? `${mins} min ago` : `${Math.floor(mins/60)}h ago`;
+      }
+    });
+    alertIdx++;
+    renderAlerts();
+  }, 8000);
+});
+</script>
+</body>
+</html>
