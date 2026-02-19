@@ -157,9 +157,8 @@
     z-index: 1;
     display: grid;
     grid-template-columns: 280px 1fr 300px;
-    grid-template-rows: 1fr;
     height: calc(100vh - 64px);
-    gap: 0;
+    overflow: hidden;
   }
 
   /* ===== SIDEBAR LEFT ===== */
@@ -450,11 +449,13 @@
   .sidebar-right {
     border-left: 1px solid var(--border);
     background: var(--bg-panel);
-    overflow-y: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    height: calc(100vh - 64px);
   }
 
   .sidebar-right::-webkit-scrollbar { width: 4px; }
@@ -509,6 +510,8 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
   }
 
   .bar-chart-title {
@@ -740,15 +743,15 @@
 
   /* ===== SIDE PANELS ===== */
   .side-panel {
-    position: absolute;
-    top: 60px;
-    right: 16px;
+    position: fixed;
+    top: 80px;
+    right: 316px;
     width: 300px;
-    max-height: calc(100vh - 140px);
+    height: calc(100vh - 100px);
     background: rgba(4,15,30,0.97);
     border: 1px solid var(--border);
     border-radius: 10px;
-    z-index: 1001;
+    z-index: 2000;
     backdrop-filter: blur(16px);
     box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0,229,255,0.05);
     animation: panelIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
@@ -792,7 +795,9 @@
   .side-panel-body {
     padding: 14px 16px 16px;
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
+    min-height: 0;
   }
 
   .side-panel-body::-webkit-scrollbar { width: 4px; }
@@ -1013,9 +1018,11 @@
   .forecast-chart {
     margin-top: 10px;
     height: 60px;
+    max-height: 60px;
     display: flex;
     align-items: flex-end;
     gap: 3px;
+    overflow: hidden;
   }
 
   .fc-bar-wrap {
@@ -1210,67 +1217,67 @@
       <button class="map-btn map-btn-ai" onclick="togglePanel('ai')" id="btn-ai">🤖 AI FORECAST</button>
     </div>
 
-    <!-- LIVE RAIN PANEL -->
-    <div class="side-panel" id="panel-rain" style="display:none">
-      <div class="side-panel-header">
-        <span class="side-panel-title">🌧️ LIVE RAINFALL RADAR</span>
-        <button class="panel-close" onclick="togglePanel('rain')">✕</button>
-      </div>
-      <div class="side-panel-body">
-        <div class="radar-grid" id="radarGrid"></div>
-        <div class="rain-legend-row">
-          <span style="color:var(--text-dim);font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:1px">INTENSITY (mm/hr)</span>
-          <div class="rain-gradient-bar"></div>
-          <div style="display:flex;justify-content:space-between;margin-top:4px">
-            <span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace">0</span>
-            <span style="font-size:9px;color:#4fc3f7;font-family:'Share Tech Mono',monospace">25</span>
-            <span style="font-size:9px;color:#ffd600;font-family:'Share Tech Mono',monospace">75</span>
-            <span style="font-size:9px;color:#ff6b35;font-family:'Share Tech Mono',monospace">125</span>
-            <span style="font-size:9px;color:#ff2d55;font-family:'Share Tech Mono',monospace">200+</span>
-          </div>
-        </div>
-        <div class="rain-stats-row" id="rainStatsRow"></div>
-        <div class="panel-timestamp">
-          <span id="radarTimestamp"></span>
-          <span class="live-badge">● LIVE</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- AI FORECAST PANEL -->
-    <div class="side-panel" id="panel-ai" style="display:none">
-      <div class="side-panel-header">
-        <span class="side-panel-title">🤖 AI FLOOD FORECAST</span>
-        <button class="panel-close" onclick="togglePanel('ai')">✕</button>
-      </div>
-      <div class="side-panel-body">
-        <div class="ai-model-badge">MODEL: FloodNet-KL v2.4 · Updated <span id="aiUpdateTime"></span></div>
-        <div class="forecast-tabs">
-          <button class="ftab active" onclick="setForecastTab(1)">+1H</button>
-          <button class="ftab" onclick="setForecastTab(3)">+3H</button>
-          <button class="ftab" onclick="setForecastTab(6)">+6H</button>
-          <button class="ftab" onclick="setForecastTab(12)">+12H</button>
-          <button class="ftab" onclick="setForecastTab(24)">+24H</button>
-        </div>
-        <div id="forecastContent"></div>
-        <div class="ai-confidence">
-          <div class="conf-label">MODEL CONFIDENCE</div>
-          <div class="conf-bar-wrap">
-            <div class="conf-bar-fill" id="confBar"></div>
-            <span class="conf-pct" id="confPct"></span>
-          </div>
-        </div>
-        <div class="ai-warning-box" id="aiWarningBox"></div>
-        <div class="forecast-chart" id="forecastChart"></div>
-      </div>
-    </div>
-
     <div class="map-legend" id="mapLegend">
       <div class="legend-title">FLOOD RISK LEVEL</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ff2d55"></div> Critical / Flooded</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div> High Risk</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ffd600"></div> Watch Zone</div>
       <div class="legend-item"><div class="legend-dot" style="background:#00e676"></div> Safe Zone</div>
+    </div>
+  </div>
+
+  <!-- LIVE RAIN PANEL — outside map-container -->
+  <div class="side-panel" id="panel-rain" style="display:none">
+    <div class="side-panel-header">
+      <span class="side-panel-title">🌧️ LIVE RAINFALL RADAR</span>
+      <button class="panel-close" onclick="togglePanel('rain')">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <div class="radar-grid" id="radarGrid"></div>
+      <div class="rain-legend-row">
+        <span style="color:var(--text-dim);font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:1px">INTENSITY (mm/hr)</span>
+        <div class="rain-gradient-bar"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace">0</span>
+          <span style="font-size:9px;color:#4fc3f7;font-family:'Share Tech Mono',monospace">25</span>
+          <span style="font-size:9px;color:#ffd600;font-family:'Share Tech Mono',monospace">75</span>
+          <span style="font-size:9px;color:#ff6b35;font-family:'Share Tech Mono',monospace">125</span>
+          <span style="font-size:9px;color:#ff2d55;font-family:'Share Tech Mono',monospace">200+</span>
+        </div>
+      </div>
+      <div class="rain-stats-row" id="rainStatsRow"></div>
+      <div class="panel-timestamp">
+        <span id="radarTimestamp"></span>
+        <span class="live-badge">● LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI FORECAST PANEL — outside map-container -->
+  <div class="side-panel" id="panel-ai" style="display:none">
+    <div class="side-panel-header">
+      <span class="side-panel-title">🤖 AI FLOOD FORECAST</span>
+      <button class="panel-close" onclick="togglePanel('ai')">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <div class="ai-model-badge">MODEL: FloodNet-KL v2.4 · Updated <span id="aiUpdateTime"></span></div>
+      <div class="forecast-tabs">
+        <button class="ftab active" onclick="setForecastTab(1)">+1H</button>
+        <button class="ftab" onclick="setForecastTab(3)">+3H</button>
+        <button class="ftab" onclick="setForecastTab(6)">+6H</button>
+        <button class="ftab" onclick="setForecastTab(12)">+12H</button>
+        <button class="ftab" onclick="setForecastTab(24)">+24H</button>
+      </div>
+      <div id="forecastContent" style="overflow-y:auto;max-height:320px;"></div>
+      <div class="ai-confidence">
+        <div class="conf-label">MODEL CONFIDENCE</div>
+        <div class="conf-bar-wrap">
+          <div class="conf-bar-fill" id="confBar"></div>
+          <span class="conf-pct" id="confPct"></span>
+        </div>
+      </div>
+      <div class="ai-warning-box" id="aiWarningBox"></div>
+      <div class="forecast-chart" id="forecastChart"></div>
     </div>
   </div>
 
