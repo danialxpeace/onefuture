@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-  /* === ORIGINAL STYLES (condensed) === */
   :root{--bg-deep:#020c18;--bg-panel:#040f1e;--bg-card:#071629;--border:#0d3a5c;--accent-cyan:#00e5ff;--accent-blue:#1a7fe8;--accent-orange:#ff6b35;--accent-red:#ff2d55;--accent-yellow:#ffd600;--accent-green:#00e676;--text-primary:#e0f4ff;--text-secondary:#6baed6;--text-dim:#2a5a7a;--glow-cyan:0 0 20px rgba(0,229,255,0.4);--glow-red:0 0 20px rgba(255,45,85,0.5);--glow-green:0 0 20px rgba(0,230,118,0.4);}
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg-deep);color:var(--text-primary);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden;}
@@ -37,8 +36,8 @@
   .rain-label{font-family:'Orbitron',monospace;font-size:11px;color:var(--text-secondary);letter-spacing:1px;}
   .rain-value{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--accent-cyan);text-shadow:var(--glow-cyan);}
   .rain-unit{font-size:11px;color:var(--text-secondary);}
-  input[type="range"]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:linear-gradient(to right,var(--accent-cyan) 0%,var(--accent-cyan) 30%,var(--border) 30%);outline:none;cursor:pointer;}
-  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent-cyan);box-shadow:0 0 10px var(--accent-cyan);cursor:pointer;transition:transform 0.2s;}
+  input[type="range"]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:linear-gradient(to right,var(--accent-cyan) 0%,var(--accent-cyan) 30%,var(--border) 30%);outline:none;cursor:pointer;touch-action:pan-x;-webkit-tap-highlight-color:transparent;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent-cyan);box-shadow:0 0 10px var(--accent-cyan);cursor:pointer;transition:transform 0.2s;}
   input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.2);}
   .rain-levels{display:flex;justify-content:space-between;margin-top:8px;}
   .rain-level-item{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);text-align:center;}
@@ -54,7 +53,7 @@
   .alert-card.warning .alert-title{color:var(--accent-orange);}
   .alert-card.danger .alert-title{color:var(--accent-red);}
   .alert-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;}
-  .zone-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all 0.2s;margin-bottom:6px;}
+  .zone-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all 0.2s;margin-bottom:6px;-webkit-tap-highlight-color:transparent;min-height:52px;}
   .zone-item:hover{border-color:var(--accent-cyan);background:rgba(0,229,255,0.05);}
   .zone-item.active{border-color:var(--accent-cyan);background:rgba(0,229,255,0.08);box-shadow:0 0 10px rgba(0,229,255,0.15);}
   .zone-name{font-size:12px;font-weight:600;color:var(--text-primary);}
@@ -66,13 +65,16 @@
   .badge-risk{background:rgba(255,107,53,0.15);color:var(--accent-orange);border:1px solid rgba(255,107,53,0.3);}
   .map-container{position:relative;background:var(--bg-deep);}
   #map{width:100%;height:100%;}
+  /* FIX: Leaflet z-index reduced so sidebar appears on top */
+  .leaflet-pane{z-index:200 !important;}
+  .leaflet-top,.leaflet-bottom{z-index:300 !important;}
   .leaflet-tile-pane{filter:brightness(0.35) saturate(0.4) hue-rotate(185deg) contrast(1.1);}
   .leaflet-control-zoom a{background:rgba(4,15,30,0.9)!important;border-color:var(--border)!important;color:var(--accent-cyan)!important;font-family:'Orbitron',monospace!important;}
   .leaflet-control-attribution{background:rgba(2,12,24,0.7)!important;color:#2a5a7a!important;font-size:9px!important;}
-  .map-overlay-top{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:8px;}
-  .map-btn{padding:8px 16px;background:rgba(4,15,30,0.9);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(10px);}
+  .map-overlay-top{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:400;display:flex;gap:8px;}
+  .map-btn{padding:8px 16px;background:rgba(4,15,30,0.9);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(10px);-webkit-tap-highlight-color:transparent;}
   .map-btn:hover,.map-btn.active{border-color:var(--accent-cyan);color:var(--accent-cyan);background:rgba(0,229,255,0.08);box-shadow:0 0 10px rgba(0,229,255,0.2);}
-  .map-legend{position:absolute;bottom:30px;left:16px;z-index:1000;background:rgba(4,15,30,0.92);border:1px solid var(--border);border-radius:8px;padding:12px 16px;backdrop-filter:blur(10px);}
+  .map-legend{position:absolute;bottom:30px;left:16px;z-index:400;background:rgba(4,15,30,0.92);border:1px solid var(--border);border-radius:8px;padding:12px 16px;backdrop-filter:blur(10px);}
   .legend-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;}
   .legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;color:var(--text-secondary);}
   .legend-dot{width:12px;height:12px;border-radius:50%;}
@@ -115,7 +117,6 @@
   .alert-content{flex:1;}
   .alert-msg{font-size:11px;color:var(--text-primary);line-height:1.4;margin-bottom:3px;}
   .alert-time{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);}
-  @media(max-width:1100px){.main-layout{grid-template-columns:240px 1fr 260px;}}
   .gauge-container{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px;}
   .gauge-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
   .gauge-name{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-secondary);}
@@ -128,11 +129,12 @@
   .map-btn-rain.panel-open{background:rgba(79,195,247,0.15)!important;box-shadow:0 0 12px rgba(79,195,247,0.3)!important;}
   .map-btn-ai{border-color:#ce93d8!important;color:#ce93d8!important;}
   .map-btn-ai.panel-open{background:rgba(206,147,216,0.15)!important;box-shadow:0 0 12px rgba(206,147,216,0.3)!important;}
+  /* FIX: side-panel z-index raised */
   .side-panel{position:fixed;top:80px;right:316px;width:300px;height:calc(100vh - 100px);background:rgba(4,15,30,0.97);border:1px solid var(--border);border-radius:10px;z-index:2000;backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(0,0,0,0.6),0 0 30px rgba(0,229,255,0.05);animation:panelIn 0.25s cubic-bezier(0.34,1.56,0.64,1);display:flex;flex-direction:column;}
   @keyframes panelIn{from{opacity:0;transform:translateY(-12px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
   .side-panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);}
   .side-panel-title{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--accent-cyan);letter-spacing:1px;}
-  .panel-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:color 0.2s;}
+  .panel-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:color 0.2s;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;}
   .panel-close:hover{color:var(--accent-red);}
   .side-panel-body{padding:14px 16px 16px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;}
   .side-panel-body::-webkit-scrollbar{width:4px;}
@@ -148,7 +150,7 @@
   .live-badge{color:var(--accent-green);font-size:9px;letter-spacing:1px;animation:pulse 1.5s infinite;}
   .ai-model-badge{font-family:'Share Tech Mono',monospace;font-size:9px;color:#ce93d8;letter-spacing:1px;margin-bottom:12px;padding:5px 8px;background:rgba(206,147,216,0.08);border:1px solid rgba(206,147,216,0.2);border-radius:4px;}
   .forecast-tabs{display:flex;gap:4px;margin-bottom:12px;}
-  .ftab{flex:1;padding:5px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.2s;}
+  .ftab{flex:1;padding:5px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;}
   .ftab:hover{border-color:#ce93d8;color:#ce93d8;}
   .ftab.active{background:rgba(206,147,216,0.15);border-color:#ce93d8;color:#ce93d8;}
   .forecast-zone-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(13,58,92,0.5);font-size:11px;}
@@ -171,11 +173,11 @@
   .fc-bar{width:100%;border-radius:2px 2px 0 0;transition:height 0.6s ease;min-height:3px;}
   .fc-time{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim);white-space:nowrap;}
   .search-wrap{margin-bottom:8px;}
-  .search-wrap input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text-primary);font-family:'Exo 2',sans-serif;font-size:12px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+  .search-wrap input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text-primary);font-family:'Exo 2',sans-serif;font-size:16px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
   .search-wrap input::placeholder{color:var(--text-dim);}
   .search-wrap input:focus{border-color:var(--accent-cyan);box-shadow:0 0 10px rgba(0,229,255,0.15);}
   .state-filter{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;max-height:80px;overflow-y:auto;}
-  .state-btn{padding:3px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:9px;cursor:pointer;transition:all 0.15s;white-space:nowrap;letter-spacing:0.5px;}
+  .state-btn{padding:4px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:9px;cursor:pointer;transition:all 0.15s;white-space:nowrap;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:28px;}
   .state-btn:hover{border-color:var(--accent-cyan);color:var(--accent-cyan);}
   .state-btn.active{background:rgba(0,229,255,0.1);border-color:var(--accent-cyan);color:var(--accent-cyan);}
   .zone-count{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);text-align:right;margin-bottom:6px;letter-spacing:1px;}
@@ -184,142 +186,184 @@
   .leaflet-control-zoom{border:1px solid #0d3a5c!important;border-radius:4px!important;overflow:hidden;}
 
   /* ===========================
-     MOBILE-RESPONSIVE ADDITIONS
+     HAMBURGER BUTTON
      =========================== */
-  html { height: -webkit-fill-available; }
-  body { touch-action: manipulation; }
-
-  /* Hamburger button (hidden on desktop) */
-  .hamburger-btn {
-    display: none;
-    width: 40px; height: 40px;
-    flex-direction: column; align-items: center; justify-content: center;
-    gap: 5px; cursor: pointer;
-    background: rgba(0,229,255,.06);
-    border: 1px solid var(--border);
-    border-radius: 8px; flex-shrink: 0; transition: all .2s;
-    -webkit-tap-highlight-color: transparent;
+  .hamburger-btn{
+    display:none;
+    width:44px;height:44px;
+    flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;cursor:pointer;
+    background:rgba(0,229,255,.06);
+    border:1px solid var(--border);
+    border-radius:8px;flex-shrink:0;transition:all .2s;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
   }
-  .hamburger-btn span { display: block; width: 18px; height: 2px; background: var(--accent-cyan); border-radius: 2px; transition: all .3s; }
-  .hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-  .hamburger-btn.open span:nth-child(2) { opacity: 0; }
-  .hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .hamburger-btn span{display:block;width:18px;height:2px;background:var(--accent-cyan);border-radius:2px;transition:all .3s;}
+  .hamburger-btn.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .hamburger-btn.open span:nth-child(2){opacity:0;}
+  .hamburger-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
 
   /* Drawer overlay */
-  .drawer-overlay {
-    display: none;
-    position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
-    background: rgba(2,12,24,.7); z-index: 899;
-    opacity: 0; transition: opacity .3s; pointer-events: none;
+  .drawer-overlay{
+    display:none;
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(2,12,24,.75);
+    opacity:0;transition:opacity .3s;pointer-events:none;
   }
-  .drawer-overlay.visible { opacity: 1; pointer-events: all; }
+  /* FIX: z-index stacking order fixed */
+  .drawer-overlay.visible{opacity:1;pointer-events:all;z-index:1500;}
 
   /* Bottom nav */
-  .bottom-nav {
-    display: none; position: fixed; bottom: 0; left: 0; right: 0;
-    height: 60px; background: rgba(4,15,30,.97); border-top: 1px solid var(--border);
-    z-index: 1000; align-items: stretch; backdrop-filter: blur(10px);
+  .bottom-nav{
+    display:none;position:fixed;bottom:0;left:0;right:0;
+    height:60px;background:rgba(4,15,30,.97);border-top:1px solid var(--border);
+    align-items:stretch;backdrop-filter:blur(10px);
   }
-  .bnav-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; background: none; border: none; border-right: 1px solid var(--border);
-    cursor: pointer; color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
-    font-size: 8px; letter-spacing: .5px; transition: all .2s;
-    touch-action: manipulation; padding: 4px 2px; -webkit-tap-highlight-color: transparent;
+  /* FIX: bottom nav z-index */
+  .bottom-nav{z-index:600;}
+  .bnav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;background:none;border:none;border-right:1px solid var(--border);
+    cursor:pointer;color:var(--text-dim);font-family:'Share Tech Mono',monospace;
+    font-size:8px;letter-spacing:.5px;transition:all .2s;
+    touch-action:manipulation;padding:4px 2px;-webkit-tap-highlight-color:transparent;
   }
-  .bnav-btn:last-child { border-right: none; }
-  .bnav-btn.active { background: rgba(0,229,255,.08); color: var(--accent-cyan); }
-  .bnav-btn .bnav-icon { font-size: 18px; line-height: 1; }
+  .bnav-btn:last-child{border-right:none;}
+  .bnav-btn.active{background:rgba(0,229,255,.08);color:var(--accent-cyan);}
+  .bnav-btn .bnav-icon{font-size:18px;line-height:1;}
 
   /* Bottom sheet */
-  .stats-sheet {
-    display: none; position: fixed; bottom: 60px; left: 0; right: 0;
-    z-index: 700; background: var(--bg-panel); border-top: 1px solid var(--border);
-    border-radius: 16px 16px 0 0; max-height: 75vh;
-    transform: translateY(100%); transition: transform .35s cubic-bezier(.34,1.1,.64,1);
-    flex-direction: column; box-shadow: 0 -8px 40px rgba(0,0,0,.5); overflow: hidden;
+  .stats-sheet{
+    display:none;position:fixed;bottom:60px;left:0;right:0;
+    background:var(--bg-panel);border-top:1px solid var(--border);
+    border-radius:16px 16px 0 0;max-height:75vh;
+    transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.1,.64,1);
+    flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.5);overflow:hidden;
   }
-  .stats-sheet.open { transform: translateY(0); }
-  .sheet-handle { flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 10px 0 6px; cursor: pointer; }
-  .sheet-handle-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; }
-  .sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .sheet-title { font-family: 'Orbitron', monospace; font-size: 11px; color: var(--accent-cyan); letter-spacing: 1px; }
-  .sheet-close { background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; padding: 4px 8px; min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
-  .sheet-tabs { display: flex; gap: 4px; padding: 8px 16px 0; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
-  .sheet-tabs::-webkit-scrollbar { display: none; }
-  .stab { padding: 6px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px 6px 0 0; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; font-size: 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; touch-action: manipulation; transition: all .2s; }
-  .stab.active { background: rgba(0,229,255,.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
-  .sheet-body { overflow-y: auto; overflow-x: hidden; flex: 1; padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 14px; }
-  .sheet-body::-webkit-scrollbar { width: 4px; }
-  .sheet-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  /* FIX: sheet z-index */
+  .stats-sheet{z-index:700;}
+  .stats-sheet.open{transform:translateY(0);}
+  .sheet-handle{flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:10px 0 6px;cursor:pointer;}
+  .sheet-handle-bar{width:40px;height:4px;background:var(--border);border-radius:2px;}
+  .sheet-header{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .sheet-title{font-family:'Orbitron',monospace;font-size:11px;color:var(--accent-cyan);letter-spacing:1px;}
+  .sheet-close{background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:4px 8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;}
+  .sheet-tabs{display:flex;gap:4px;padding:8px 16px 0;flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+  .sheet-tabs::-webkit-scrollbar{display:none;}
+  .stab{padding:8px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px 6px 0 0;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;flex-shrink:0;touch-action:manipulation;transition:all .2s;-webkit-tap-highlight-color:transparent;min-height:36px;}
+  .stab.active{background:rgba(0,229,255,.1);border-color:var(--accent-cyan);color:var(--accent-cyan);}
+  .sheet-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:14px 16px 20px;display:flex;flex-direction:column;gap:14px;}
+  .sheet-body::-webkit-scrollbar{width:4px;}
+  .sheet-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
   /* ===== MOBILE < 900px ===== */
-  @media (max-width: 899px) {
-    :root { --mobile-h: 52px; --bot-h: 60px; }
-    * { -webkit-tap-highlight-color: transparent; }
-    header { height: var(--mobile-h) !important; padding: 0 10px !important; }
-    .hamburger-btn { display: flex !important; }
-    .live-clock { display: none !important; }
-    .logo-text { font-size: 13px !important; letter-spacing: 1px !important; }
-    .logo-sub { display: none !important; }
-    .status-pill { font-size: 8px !important; padding: 4px 8px !important; }
-    .main-layout {
-      position: fixed !important;
-      top: var(--mobile-h) !important; left: 0 !important; right: 0 !important;
-      bottom: var(--bot-h) !important;
-      grid-template-columns: 1fr !important;
-      height: auto !important; overflow: hidden !important;
+  @media(max-width:899px){
+    html{height:-webkit-fill-available;}
+    body{touch-action:manipulation;}
+    header{height:52px!important;padding:0 10px!important;}
+    .hamburger-btn{display:flex!important;}
+    .live-clock{display:none!important;}
+    .logo-text{font-size:13px!important;letter-spacing:1px!important;}
+    .logo-sub{display:none!important;}
+    .status-pill{font-size:8px!important;padding:4px 8px!important;}
+
+    .main-layout{
+      position:fixed!important;
+      top:52px!important;left:0!important;right:0!important;
+      bottom:60px!important;
+      grid-template-columns:1fr!important;
+      height:auto!important;overflow:hidden!important;
     }
-    .sidebar-left {
-      position: fixed !important; top: var(--mobile-h) !important; left: -100% !important;
-      width: min(300px, 85vw) !important; height: calc(100vh - var(--mobile-h)) !important;
-      z-index: 900 !important; transition: left .3s cubic-bezier(.34,1.1,.64,1) !important;
-      overflow-y: auto !important;
+
+    /* FIX: Sidebar z-index now ABOVE overlay and leaflet */
+    .sidebar-left{
+      position:fixed!important;
+      top:52px!important;
+      left:-100%!important;
+      width:min(300px,85vw)!important;
+      height:calc(100dvh - 52px - 60px)!important;
+      z-index:1600!important;
+      transition:left .3s cubic-bezier(.34,1.1,.64,1)!important;
+      overflow-y:auto!important;
+      -webkit-overflow-scrolling:touch!important;
+      padding-bottom:24px!important;
     }
-    .sidebar-left.open { left: 0 !important; box-shadow: 8px 0 40px rgba(0,0,0,.6) !important; }
-    .sidebar-right { display: none !important; }
-    .map-container { grid-column: 1 / -1 !important; width: 100% !important; height: 100% !important; }
-    .bottom-nav { display: flex !important; }
-    .drawer-overlay { display: block !important; }
-    .stats-sheet { display: flex !important; }
-    .side-panel {
-      right: 8px !important; left: 8px !important; width: auto !important;
-      max-width: none !important; top: calc(var(--mobile-h) + 8px) !important;
-      max-height: calc(100vh - var(--mobile-h) - var(--bot-h) - 16px) !important;
+    .sidebar-left.open{
+      left:0!important;
+      box-shadow:8px 0 40px rgba(0,0,0,.7)!important;
     }
-    .map-overlay-top {
-      left: 8px !important; transform: none !important; right: 8px !important;
-      overflow-x: auto !important; -webkit-overflow-scrolling: touch !important;
-      scrollbar-width: none !important; justify-content: flex-start !important;
-      max-width: none !important; padding-bottom: 4px !important;
+
+    /* FIX: Drawer overlay z-index between leaflet and sidebar */
+    .drawer-overlay{
+      display:block!important;
+      z-index:1500!important;
+      top:52px!important;
     }
-    .map-overlay-top::-webkit-scrollbar { display: none !important; }
-    .map-btn { min-height: 36px !important; flex-shrink: 0 !important; white-space: nowrap !important; }
-    .map-legend { padding: 6px 10px !important; }
-    .legend-title { font-size: 8px !important; }
-    .legend-item { font-size: 9px !important; margin-bottom: 3px !important; }
-    .legend-dot { width: 8px !important; height: 8px !important; }
-    .leaflet-control-zoom a { width: 36px !important; height: 36px !important; line-height: 36px !important; font-size: 18px !important; }
-    input[type="range"]::-webkit-slider-thumb { width: 28px !important; height: 28px !important; }
-    input[type="range"] { height: 8px !important; }
-    .zone-item { min-height: 52px !important; padding: 12px !important; }
-    .state-btn { min-height: 32px !important; }
-    .search-wrap input { font-size: 16px !important; }
-    .stat-value { font-size: 26px !important; }
-  }
-  @media (max-width: 899px) and (orientation: landscape) {
-    :root { --mobile-h: 44px; }
-    .stats-sheet { max-height: 70vh !important; }
-    .side-panel { max-height: calc(100vh - 44px - 60px - 12px) !important; }
+    .drawer-overlay.visible{opacity:1;pointer-events:all;}
+
+    .sidebar-right{display:none!important;}
+    .map-container{
+      grid-column:1/-1!important;
+      width:100%!important;
+      height:100%!important;
+      position:relative!important;
+    }
+
+    /* FIX: Leaflet must stay BELOW sidebar on mobile */
+    .leaflet-pane{z-index:200!important;}
+    .leaflet-top,.leaflet-bottom{z-index:300!important;}
+    .leaflet-container{z-index:1!important;}
+
+    .bottom-nav{display:flex!important;z-index:600!important;}
+    .stats-sheet{display:flex!important;z-index:700!important;}
+
+    /* FIX: Side panels on mobile */
+    .side-panel{
+      right:8px!important;left:8px!important;width:auto!important;
+      max-width:none!important;
+      top:calc(52px + 8px)!important;
+      max-height:calc(100dvh - 52px - 60px - 16px)!important;
+      z-index:1400!important;
+    }
+
+    .map-overlay-top{
+      left:8px!important;transform:none!important;right:8px!important;
+      overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;
+      scrollbar-width:none!important;justify-content:flex-start!important;
+      max-width:none!important;padding-bottom:4px!important;
+      z-index:400!important;
+    }
+    .map-overlay-top::-webkit-scrollbar{display:none!important;}
+    .map-btn{min-height:40px!important;flex-shrink:0!important;white-space:nowrap!important;font-size:10px!important;}
+    .map-legend{padding:6px 10px!important;bottom:8px!important;z-index:400!important;}
+    .legend-title{font-size:8px!important;}
+    .legend-item{font-size:9px!important;margin-bottom:3px!important;}
+    .legend-dot{width:8px!important;height:8px!important;}
+    .leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important;font-size:18px!important;}
+
+    input[type="range"]::-webkit-slider-thumb{width:28px!important;height:28px!important;}
+    input[type="range"]{height:8px!important;}
+
+    .zone-item{min-height:52px!important;padding:12px!important;}
+    .state-btn{min-height:32px!important;}
+    .stat-value{font-size:26px!important;}
   }
 
+  @media(max-width:899px) and (orientation:landscape){
+    .main-layout{top:44px!important;bottom:60px!important;}
+    .sidebar-left{top:44px!important;height:calc(100dvh - 44px - 60px)!important;}
+    .drawer-overlay{top:44px!important;}
+    .stats-sheet{max-height:70vh!important;}
+    .side-panel{top:calc(44px + 8px)!important;max-height:calc(100dvh - 44px - 60px - 16px)!important;}
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-left">
-    <div class="hamburger-btn" id="hamburgerBtn" onclick="toggleDrawer()">
+    <div class="hamburger-btn" id="hamburgerBtn">
       <span></span><span></span><span></span>
     </div>
     <div class="logo">
@@ -347,30 +391,34 @@
 </header>
 
 <!-- Drawer overlay -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer-overlay" id="drawerOverlay"></div>
 
 <!-- Bottom Nav (mobile) -->
 <nav class="bottom-nav">
-  <button class="bnav-btn active" id="bnav-map" onclick="mobileNav('map')"><span class="bnav-icon">🗺️</span><span>MAP</span></button>
-  <button class="bnav-btn" id="bnav-rain" onclick="mobileNav('rain-ctrl')"><span class="bnav-icon">🌧️</span><span>RAIN</span></button>
-  <button class="bnav-btn" id="bnav-stats" onclick="mobileNav('stats')"><span class="bnav-icon">📊</span><span>STATS</span></button>
-  <button class="bnav-btn" id="bnav-alerts" onclick="mobileNav('alerts')"><span class="bnav-icon">🔔</span><span>ALERTS</span></button>
-  <button class="bnav-btn" id="bnav-routes" onclick="mobileNav('routes')"><span class="bnav-icon">🛣️</span><span>ROUTES</span></button>
+  <button class="bnav-btn active" id="bnav-map"><span class="bnav-icon">🗺️</span><span>MAP</span></button>
+  <button class="bnav-btn" id="bnav-rain"><span class="bnav-icon">🌧️</span><span>RAIN</span></button>
+  <button class="bnav-btn" id="bnav-stats"><span class="bnav-icon">📊</span><span>STATS</span></button>
+  <button class="bnav-btn" id="bnav-alerts"><span class="bnav-icon">🔔</span><span>ALERTS</span></button>
+  <button class="bnav-btn" id="bnav-routes"><span class="bnav-icon">🛣️</span><span>ROUTES</span></button>
 </nav>
 
 <!-- Bottom Sheet (mobile stats) -->
 <div class="stats-sheet" id="statsSheet">
-  <div class="sheet-handle" onclick="closeSheet()"><div class="sheet-handle-bar"></div></div>
+  <div class="sheet-handle" id="sheetHandle"><div class="sheet-handle-bar"></div></div>
   <div class="sheet-tabs">
-    <button class="stab active" id="stab-stats" onclick="switchSheetTab('stats')">📊 STATS</button>
-    <button class="stab" id="stab-gauges" onclick="switchSheetTab('gauges')">💧 GAUGES</button>
-    <button class="stab" id="stab-risk" onclick="switchSheetTab('risk')">⚠️ RISK</button>
-    <button class="stab" id="stab-routes" onclick="switchSheetTab('routes')">🛣️ ROUTES</button>
-    <button class="stab" id="stab-alerts" onclick="switchSheetTab('alerts')">🔔 ALERTS</button>
+    <button class="stab active" id="stab-stats">📊 STATS</button>
+    <button class="stab" id="stab-gauges">💧 GAUGES</button>
+    <button class="stab" id="stab-risk">⚠️ RISK</button>
+    <button class="stab" id="stab-routes">🛣️ ROUTES</button>
+    <button class="stab" id="stab-alerts">🔔 ALERTS</button>
   </div>
-  <div class="sheet-header"><span class="sheet-title" id="sheetTitle">LIVE STATISTICS</span><button class="sheet-close" onclick="closeSheet()">✕</button></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="sheetTitle">LIVE STATISTICS</span>
+    <button class="sheet-close" id="sheetCloseBtn">✕</button>
+  </div>
   <div class="sheet-body" id="sheetBody"></div>
 </div>
+
 <div class="main-layout">
   <!-- SIDEBAR LEFT -->
   <div class="sidebar-left" id="sidebarLeft">
@@ -380,7 +428,7 @@
         <div class="rain-label">RAINFALL INTENSITY</div>
         <div><span class="rain-value" id="rainVal">30</span><span class="rain-unit"> mm/hr</span></div>
       </div>
-      <input type="range" id="rainSlider" min="0" max="200" value="30" oninput="updateRain(this.value)">
+      <input type="range" id="rainSlider" min="0" max="200" value="30">
       <div class="rain-levels">
         <div class="rain-level-item">CLEAR<br>0</div>
         <div class="rain-level-item">LIGHT<br>25</div>
@@ -395,10 +443,10 @@
     </div>
     <div class="section-label">Monitored Zones</div>
     <div class="search-wrap">
-      <input type="text" id="searchBar" placeholder="🔍  Cari daerah / negeri..." oninput="filterZones()" autocomplete="off">
+      <input type="text" id="searchBar" placeholder="🔍  Cari daerah / negeri..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </div>
     <div class="state-filter" id="stateFilter">
-      <button class="state-btn active" onclick="setStateFilter('ALL')">ALL</button>
+      <button class="state-btn active">ALL</button>
     </div>
     <div class="zone-count" id="zoneCountBadge">— DAERAH</div>
     <div id="zoneList"></div>
@@ -408,11 +456,11 @@
   <div class="map-container">
     <div id="map"></div>
     <div class="map-overlay-top">
-      <button class="map-btn active" onclick="setLayer('flood')" id="btn-flood">🌊 FLOOD ZONES</button>
-      <button class="map-btn" onclick="setLayer('routes')" id="btn-routes">🛣️ EVAC ROUTES</button>
-      <button class="map-btn" onclick="setLayer('stations')" id="btn-stations">📡 STATIONS</button>
-      <button class="map-btn map-btn-rain" onclick="togglePanel('rain')" id="btn-rain">🌧️ LIVE RAIN</button>
-      <button class="map-btn map-btn-ai" onclick="togglePanel('ai')" id="btn-ai">🤖 AI FORECAST</button>
+      <button class="map-btn active" id="btn-flood">🌊 FLOOD ZONES</button>
+      <button class="map-btn" id="btn-routes">🛣️ EVAC ROUTES</button>
+      <button class="map-btn" id="btn-stations">📡 STATIONS</button>
+      <button class="map-btn map-btn-rain" id="btn-rain">🌧️ LIVE RAIN</button>
+      <button class="map-btn map-btn-ai" id="btn-ai">🤖 AI FORECAST</button>
     </div>
     <div class="map-legend" id="mapLegend">
       <div class="legend-title">FLOOD RISK LEVEL</div>
@@ -427,7 +475,7 @@
   <div class="side-panel" id="panel-rain" style="display:none">
     <div class="side-panel-header">
       <span class="side-panel-title">🌧️ LIVE RAINFALL RADAR</span>
-      <button class="panel-close" onclick="togglePanel('rain')">✕</button>
+      <button class="panel-close" id="closeRainPanel">✕</button>
     </div>
     <div class="side-panel-body">
       <div class="radar-grid" id="radarGrid"></div>
@@ -454,16 +502,16 @@
   <div class="side-panel" id="panel-ai" style="display:none">
     <div class="side-panel-header">
       <span class="side-panel-title">🤖 AI FLOOD FORECAST</span>
-      <button class="panel-close" onclick="togglePanel('ai')">✕</button>
+      <button class="panel-close" id="closeAiPanel">✕</button>
     </div>
     <div class="side-panel-body">
       <div class="ai-model-badge">MODEL: FloodNet-KL v2.4 · Updated <span id="aiUpdateTime"></span></div>
       <div class="forecast-tabs">
-        <button class="ftab active" onclick="setForecastTab(1)">+1H</button>
-        <button class="ftab" onclick="setForecastTab(3)">+3H</button>
-        <button class="ftab" onclick="setForecastTab(6)">+6H</button>
-        <button class="ftab" onclick="setForecastTab(12)">+12H</button>
-        <button class="ftab" onclick="setForecastTab(24)">+24H</button>
+        <button class="ftab active" data-h="1">+1H</button>
+        <button class="ftab" data-h="3">+3H</button>
+        <button class="ftab" data-h="6">+6H</button>
+        <button class="ftab" data-h="12">+12H</button>
+        <button class="ftab" data-h="24">+24H</button>
       </div>
       <div id="forecastContent" style="overflow-y:auto;max-height:220px;margin-bottom:8px;"></div>
       <div class="ai-confidence">
@@ -505,12 +553,12 @@
     <div class="alerts-feed" id="alertFeed"></div>
   </div>
 </div>
+
 <script>
 // ==============================
 // FLOODGUARD KL 2050 — FULL JS
 // ==============================
 
-// --- DATA ---
 const zones = [
   {id:'kl01',name:'Lembah Pantai',area:'WP Kuala Lumpur',state:'WPKL',lat:3.1074,lng:101.6745,risk:0,floodRisk:0.1,pop:95000},
   {id:'kl02',name:'Chow Kit',area:'WP Kuala Lumpur',state:'WPKL',lat:3.1696,lng:101.6970,risk:2,floodRisk:0.45,pop:72000},
@@ -580,14 +628,14 @@ const zones = [
   {id:'ph43',name:'Bentong',area:'Bentong',state:'PAHANG',lat:3.5241,lng:101.9084,risk:3,floodRisk:0.63,pop:73000},
   {id:'ph44',name:'Labuan',area:'WP Labuan',state:'WPLABUAN',lat:5.2817,lng:115.2360,risk:2,floodRisk:0.5,pop:95000},
   {id:'ph45',name:'Putrajaya',area:'WP Putrajaya',state:'WPPUTRAJAYA',lat:2.9264,lng:101.6964,risk:1,floodRisk:0.18,pop:109000},
-  {id:'ph46',name:'Kuala Lumpur Utara',area:'WP Kuala Lumpur',state:'WPKL',lat:3.2095,lng:101.6765,risk:2,floodRisk:0.42,pop:98000},
+  {id:'ph46',name:'KL Utara',area:'WP Kuala Lumpur',state:'WPKL',lat:3.2095,lng:101.6765,risk:2,floodRisk:0.42,pop:98000},
   {id:'ph47',name:'Cheras',area:'WP Kuala Lumpur',state:'WPKL',lat:3.0796,lng:101.7498,risk:3,floodRisk:0.66,pop:115000},
   {id:'ph48',name:'Sri Hartamas',area:'WP Kuala Lumpur',state:'WPKL',lat:3.1656,lng:101.6585,risk:0,floodRisk:0.12,pop:35000},
   {id:'ph49',name:'Damansara',area:'Petaling',state:'SELANGOR',lat:3.1519,lng:101.6237,risk:1,floodRisk:0.24,pop:72000},
   {id:'ph50',name:'Bangsar',area:'WP Kuala Lumpur',state:'WPKL',lat:3.1197,lng:101.6734,risk:0,floodRisk:0.13,pop:44000},
   {id:'ph51',name:'Klang Utara',area:'Klang',state:'SELANGOR',lat:3.0820,lng:101.4410,risk:3,floodRisk:0.7,pop:88000},
   {id:'ph52',name:'Kapar',area:'Klang',state:'SELANGOR',lat:3.0994,lng:101.4075,risk:4,floodRisk:0.85,pop:52000},
-  {id:'ph53',name:'Kuala Lumpur Selatan',area:'WP Kuala Lumpur',state:'WPKL',lat:3.0870,lng:101.7010,risk:2,floodRisk:0.44,pop:82000},
+  {id:'ph53',name:'KL Selatan',area:'WP Kuala Lumpur',state:'WPKL',lat:3.0870,lng:101.7010,risk:2,floodRisk:0.44,pop:82000},
   {id:'ph54',name:'Seri Kembangan',area:'Petaling',state:'SELANGOR',lat:3.0359,lng:101.7075,risk:2,floodRisk:0.46,pop:93000},
   {id:'ph55',name:'Beranang',area:'Ulu Langat',state:'SELANGOR',lat:2.8765,lng:101.8598,risk:2,floodRisk:0.48,pop:38000},
   {id:'ph56',name:'Tumpat',area:'Tumpat',state:'KELANTAN',lat:6.1985,lng:102.1703,risk:4,floodRisk:0.93,pop:78000},
@@ -609,14 +657,14 @@ const zones = [
   {id:'ph72',name:'Semporna',area:'Semporna',state:'SABAH',lat:4.4873,lng:118.6097,risk:2,floodRisk:0.48,pop:90000}
 ];
 
-const rivers = [
+const rivers=[
   {name:'Sg. Gombak',baseLevel:1.2,maxLevel:7.5,dangerLevel:5.5,lat:3.1720,lng:101.6980},
   {name:'Sg. Klang',baseLevel:2.0,maxLevel:9.0,dangerLevel:6.5,lat:3.1450,lng:101.7020},
   {name:'Sg. Batu',baseLevel:0.8,maxLevel:5.0,dangerLevel:3.5,lat:3.1920,lng:101.6780},
   {name:'Sg. Kerayong',baseLevel:1.5,maxLevel:6.0,dangerLevel:4.5,lat:3.1100,lng:101.7150}
 ];
 
-const evakRoutes = [
+const evakRoutes=[
   {name:'MRR2 Northbound',detail:'Via Jln Gombak → Jln Pahang',status:'open'},
   {name:'NKVE to Subang',detail:'Via Kota Damansara Interchange',status:'open'},
   {name:'Duke Highway East',detail:'Via Jln Ampang → KL East',status:'caution'},
@@ -625,7 +673,7 @@ const evakRoutes = [
   {name:'Sprint Highway',detail:'Kerinchi Link → Pantai',status:'open'}
 ];
 
-const alertMessages = [
+const alertMessages=[
   {msg:'Water level at Sg. Gombak Station rising. Current: 3.2m above normal.',time:'12:43',type:'warning'},
   {msg:'SMART Tunnel activated. Motorists advised to avoid Jalan Tun Razak.',time:'12:38',type:'danger'},
   {msg:'Flood warning issued for Ampang and Cheras districts.',time:'12:31',type:'danger'},
@@ -637,37 +685,26 @@ const alertMessages = [
   {msg:'DBKL pumping stations operating at 95% capacity.',time:'11:48',type:'info'},
   {msg:'Flash flood advisory extended to include Segambut area.',time:'11:40',type:'warning'},
 ];
+const dotColors={danger:'#ff2d55',warning:'#ff6b35',info:'#4fc3f7',safe:'#00e676'};
 
-const dotColors = {danger:'#ff2d55',warning:'#ff6b35',info:'#4fc3f7',safe:'#00e676'};
-
-// --- STATE ---
-let currentLayer = 'flood';
-let rainLevel = 30;
-let selectedZoneId = null;
-let stateFilter = 'ALL';
-let searchQuery = '';
-let markers = {};
-let zonePolygons = {};
-let routeLines = [];
-let stationMarkers = [];
-let allStates = [];
-let openPanel = null;
-let forecastHour = 1;
+let currentLayer='flood';
+let rainLevel=30;
+let selectedZoneId=null;
+let stateFilter='ALL';
+let searchQuery='';
+let markers={};
+let zonePolygons={};
+let routeLines=[];
+let stationMarkers=[];
+let openPanel=null;
+let forecastHour=1;
 let leafletMap;
+let _currentSheetTab='stats';
 
-// --- INIT ---
-function init() {
-  leafletMap = L.map('map', {
-    center: [3.8, 109.0],
-    zoom: 6,
-    zoomControl: true
-  });
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 18
-  }).addTo(leafletMap);
-
+// ---- INIT ----
+function init(){
+  leafletMap=L.map('map',{center:[3.8,109.0],zoom:6,zoomControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(leafletMap);
   buildZones();
   renderZoneList();
   buildStateFilter();
@@ -680,118 +717,151 @@ function init() {
   updateAIForecast();
   startClock();
   startAlertRotation();
-
-  // Mobile: initial render for sheet
-  setTimeout(() => {
-    if (typeof renderSheetBody === 'function') renderSheetBody('stats');
-  }, 500);
+  bindEvents();
+  setTimeout(()=>renderSheetBody('stats'),600);
 }
 
-function startClock() {
-  const el = document.getElementById('clock');
-  setInterval(() => {
-    if (el) el.textContent = new Date().toLocaleTimeString('en-MY', {hour12:false});
-  }, 1000);
-}
+function bindEvents(){
+  // Hamburger
+  const hbtn=document.getElementById('hamburgerBtn');
+  if(hbtn) hbtn.addEventListener('click',toggleDrawer);
 
-function buildZones() {
-  zones.forEach(z => {
-    const latlng = [z.lat, z.lng];
-    const colors = ['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'];
-    const c = colors[z.risk] || '#00e676';
-    const radius = 8000 + z.pop / 8000;
-    const circle = L.circle(latlng, {
-      radius, color: c, fillColor: c, fillOpacity: 0.35, weight: 1.5, opacity: 0.8
-    }).addTo(leafletMap);
+  // Drawer overlay
+  const ov=document.getElementById('drawerOverlay');
+  if(ov) ov.addEventListener('click',closeDrawer);
 
-    circle.bindTooltip(`<div class="flood-tooltip-inner"><b>${z.name}</b><br>${z.area}, ${z.state}<br>Pop: ${(z.pop/1000).toFixed(0)}K · Risk: ${['SAFE','LOW','WATCH','HIGH','FLOOD'][z.risk]}</div>`, {permanent: false, className: 'flood-tooltip', sticky: true});
-    circle.on('click', () => selectZone(z.id));
-    zonePolygons[z.id] = circle;
+  // Rain slider
+  const rs=document.getElementById('rainSlider');
+  if(rs){
+    rs.addEventListener('input',function(){updateRain(this.value);});
+    rs.addEventListener('change',function(){updateRain(this.value);});
+  }
 
-    const mk = L.circleMarker(latlng, {radius:5, color:'#000', fillColor: c, fillOpacity:1, weight:1}).addTo(leafletMap);
-    mk.on('click', () => selectZone(z.id));
-    markers[z.id] = mk;
+  // Search bar
+  const sb=document.getElementById('searchBar');
+  if(sb) sb.addEventListener('input',filterZones);
+
+  // Map layer buttons
+  document.getElementById('btn-flood').addEventListener('click',()=>setLayer('flood'));
+  document.getElementById('btn-routes').addEventListener('click',()=>setLayer('routes'));
+  document.getElementById('btn-stations').addEventListener('click',()=>setLayer('stations'));
+  document.getElementById('btn-rain').addEventListener('click',()=>togglePanel('rain'));
+  document.getElementById('btn-ai').addEventListener('click',()=>togglePanel('ai'));
+
+  // Panel close buttons
+  document.getElementById('closeRainPanel').addEventListener('click',()=>togglePanel('rain'));
+  document.getElementById('closeAiPanel').addEventListener('click',()=>togglePanel('ai'));
+
+  // Forecast tabs
+  document.querySelectorAll('.ftab').forEach(btn=>{
+    btn.addEventListener('click',function(){setForecastTab(parseInt(this.dataset.h));});
+  });
+
+  // Bottom nav
+  document.getElementById('bnav-map').addEventListener('click',()=>mobileNav('map'));
+  document.getElementById('bnav-rain').addEventListener('click',()=>mobileNav('rain-ctrl'));
+  document.getElementById('bnav-stats').addEventListener('click',()=>mobileNav('stats'));
+  document.getElementById('bnav-alerts').addEventListener('click',()=>mobileNav('alerts'));
+  document.getElementById('bnav-routes').addEventListener('click',()=>mobileNav('routes'));
+
+  // Sheet tabs
+  document.getElementById('stab-stats').addEventListener('click',()=>switchSheetTab('stats'));
+  document.getElementById('stab-gauges').addEventListener('click',()=>switchSheetTab('gauges'));
+  document.getElementById('stab-risk').addEventListener('click',()=>switchSheetTab('risk'));
+  document.getElementById('stab-routes').addEventListener('click',()=>switchSheetTab('routes'));
+  document.getElementById('stab-alerts').addEventListener('click',()=>switchSheetTab('alerts'));
+
+  // Sheet close & handle
+  document.getElementById('sheetCloseBtn').addEventListener('click',closeSheet);
+  document.getElementById('sheetHandle').addEventListener('click',closeSheet);
+
+  // Resize
+  window.addEventListener('resize',function(){
+    if(window.innerWidth>=900){closeDrawer();closeSheet();}
+    if(leafletMap) leafletMap.invalidateSize();
   });
 }
 
-function setLayer(layer) {
-  currentLayer = layer;
-  ['flood','routes','stations'].forEach(l => {
-    const btn = document.getElementById('btn-' + l);
-    if (btn) btn.classList.toggle('active', l === layer);
-  });
-
-  // Show/hide layers
-  Object.values(zonePolygons).forEach(c => {
-    if (layer === 'flood') c.addTo(leafletMap); else leafletMap.removeLayer(c);
-  });
-  Object.values(markers).forEach(m => {
-    if (layer === 'flood') m.addTo(leafletMap); else leafletMap.removeLayer(m);
-  });
-  routeLines.forEach(l => {
-    if (layer === 'routes') l.addTo(leafletMap); else leafletMap.removeLayer(l);
-  });
-  stationMarkers.forEach(m => {
-    if (layer === 'stations') m.addTo(leafletMap); else leafletMap.removeLayer(m);
-  });
-
-  if (layer === 'routes' && routeLines.length === 0) buildRouteLines();
-  if (layer === 'stations' && stationMarkers.length === 0) buildStationMarkers();
+function startClock(){
+  const el=document.getElementById('clock');
+  if(el) setInterval(()=>{el.textContent=new Date().toLocaleTimeString('en-MY',{hour12:false});},1000);
 }
 
-function buildRouteLines() {
-  const routes = [
+function buildZones(){
+  zones.forEach(z=>{
+    const latlng=[z.lat,z.lng];
+    const colors=['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'];
+    const c=colors[z.risk]||'#00e676';
+    const radius=8000+z.pop/8000;
+    const circle=L.circle(latlng,{radius,color:c,fillColor:c,fillOpacity:0.35,weight:1.5,opacity:0.8}).addTo(leafletMap);
+    circle.bindTooltip(`<div class="flood-tooltip-inner"><b>${z.name}</b><br>${z.area}, ${z.state}<br>Pop: ${(z.pop/1000).toFixed(0)}K · Risk: ${['SAFE','LOW','WATCH','HIGH','FLOOD'][z.risk]}</div>`,{permanent:false,className:'flood-tooltip',sticky:true});
+    circle.on('click',()=>selectZone(z.id));
+    zonePolygons[z.id]=circle;
+    const mk=L.circleMarker(latlng,{radius:5,color:'#000',fillColor:c,fillOpacity:1,weight:1}).addTo(leafletMap);
+    mk.on('click',()=>selectZone(z.id));
+    markers[z.id]=mk;
+  });
+}
+
+function setLayer(layer){
+  currentLayer=layer;
+  ['flood','routes','stations'].forEach(l=>{
+    const btn=document.getElementById('btn-'+l);
+    if(btn) btn.classList.toggle('active',l===layer);
+  });
+  Object.values(zonePolygons).forEach(c=>{if(layer==='flood') c.addTo(leafletMap); else leafletMap.removeLayer(c);});
+  Object.values(markers).forEach(m=>{if(layer==='flood') m.addTo(leafletMap); else leafletMap.removeLayer(m);});
+  routeLines.forEach(l=>{if(layer==='routes') l.addTo(leafletMap); else leafletMap.removeLayer(l);});
+  stationMarkers.forEach(m=>{if(layer==='stations') m.addTo(leafletMap); else leafletMap.removeLayer(m);});
+  if(layer==='routes'&&routeLines.length===0) buildRouteLines();
+  if(layer==='stations'&&stationMarkers.length===0) buildStationMarkers();
+}
+
+function buildRouteLines(){
+  const routes=[
     [[3.172,101.698],[3.209,101.676],[3.252,101.701],[3.237,101.684]],
     [[3.145,101.702],[3.073,101.518],[3.052,101.590]],
     [[3.148,101.764],[3.183,101.725],[3.150,101.697]],
     [[3.092,101.719],[3.036,101.620],[3.026,101.585]]
   ];
-  const colors = ['#ff6b35','#00e676','#ffd600','#00e5ff'];
-  routes.forEach((pts, i) => {
-    const l = L.polyline(pts, {color: colors[i], weight: 3, opacity: 0.85, dashArray: '8,4'});
+  const colors=['#ff6b35','#00e676','#ffd600','#00e5ff'];
+  routes.forEach((pts,i)=>{
+    const l=L.polyline(pts,{color:colors[i],weight:3,opacity:0.85,dashArray:'8,4'});
     routeLines.push(l);
-    if (currentLayer === 'routes') l.addTo(leafletMap);
+    if(currentLayer==='routes') l.addTo(leafletMap);
   });
 }
 
-function buildStationMarkers() {
-  rivers.forEach(r => {
-    const m = L.marker([r.lat, r.lng], {
-      icon: L.divIcon({className: '', html: '<div style="width:16px;height:16px;background:#4fc3f7;border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px #4fc3f7;"></div>', iconSize:[16,16], iconAnchor:[8,8]})
-    });
-    m.bindTooltip(`<div class="flood-tooltip-inner"><b>📡 ${r.name}</b><br>Station: Active</div>`, {permanent:false, className:'flood-tooltip'});
+function buildStationMarkers(){
+  rivers.forEach(r=>{
+    const m=L.marker([r.lat,r.lng],{icon:L.divIcon({className:'',html:'<div style="width:16px;height:16px;background:#4fc3f7;border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px #4fc3f7;"></div>',iconSize:[16,16],iconAnchor:[8,8]})});
+    m.bindTooltip(`<div class="flood-tooltip-inner"><b>📡 ${r.name}</b><br>Station: Active</div>`,{permanent:false,className:'flood-tooltip'});
     stationMarkers.push(m);
-    if (currentLayer === 'stations') m.addTo(leafletMap);
+    if(currentLayer==='stations') m.addTo(leafletMap);
   });
 }
 
-function selectZone(id) {
-  selectedZoneId = id;
-  const z = zones.find(z => z.id === id);
-  if (!z) return;
-
-  document.querySelectorAll('.zone-item').forEach(el => el.classList.remove('active'));
-  const el = document.querySelector(`[data-id="${id}"]`);
-  if (el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
-
-  leafletMap.flyTo([z.lat, z.lng], 12, {animate:true, duration:1.2});
-  updateRoutePanel(z.id, z.name, z.state);
-
-  if (document.getElementById('routeSection')) {
-    document.getElementById('routeSection').textContent = `Evacuation Routes (${z.name})`;
-  }
+function selectZone(id){
+  selectedZoneId=id;
+  const z=zones.find(z=>z.id===id);
+  if(!z) return;
+  document.querySelectorAll('.zone-item').forEach(el=>el.classList.remove('active'));
+  const el=document.querySelector(`[data-id="${id}"]`);
+  if(el){el.classList.add('active');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  leafletMap.flyTo([z.lat,z.lng],12,{animate:true,duration:1.2});
+  updateRoutePanel(z.id,z.name,z.state);
+  const rs=document.getElementById('routeSection');
+  if(rs) rs.textContent=`Evacuation Routes (${z.name})`;
+  if(window.innerWidth<900) closeDrawer();
 }
 
-function updateRain(val) {
-  rainLevel = parseInt(val);
-  const el = document.getElementById('rainVal');
-  if (el) el.textContent = val;
-
-  // Update slider gradient
-  const pct = (val / 200) * 100;
-  const slider = document.getElementById('rainSlider');
-  if (slider) slider.style.background = `linear-gradient(to right,var(--accent-cyan) 0%,var(--accent-cyan) ${pct}%,var(--border) ${pct}%)`;
-
+function updateRain(val){
+  rainLevel=parseInt(val);
+  const el=document.getElementById('rainVal');
+  if(el) el.textContent=val;
+  const pct=(val/200)*100;
+  const slider=document.getElementById('rainSlider');
+  if(slider) slider.style.background=`linear-gradient(to right,var(--accent-cyan) 0%,var(--accent-cyan) ${pct}%,var(--border) ${pct}%)`;
   updateStats(val);
   updateZoneRisks(val);
   renderGauges();
@@ -799,489 +869,383 @@ function updateRain(val) {
   updateAlertCard(val);
   updateRadar();
   updateAIForecast();
-
-  // Refresh sheet if open on mobile
-  const sheet = document.getElementById('statsSheet');
-  if (sheet && sheet.classList.contains('open') && typeof renderSheetBody === 'function') {
-    renderSheetBody(window._currentSheetTab || 'stats');
-  }
+  const sheet=document.getElementById('statsSheet');
+  if(sheet&&sheet.classList.contains('open')) renderSheetBody(_currentSheetTab);
 }
 
-function updateZoneRisks(rain) {
-  const mm = parseInt(rain);
-  zones.forEach(z => {
-    const fr = z.floodRisk;
-    const base = fr * 4;
-    const rainFactor = (mm / 200) * 4;
-    const combined = (base * 0.6 + rainFactor * 0.4);
-    z.risk = Math.min(4, Math.round(combined));
-
-    const colors = ['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'];
-    const c = colors[z.risk];
-    if (zonePolygons[z.id]) {
-      zonePolygons[z.id].setStyle({color:c, fillColor:c});
-    }
-    if (markers[z.id]) {
-      markers[z.id].setStyle({fillColor:c});
-    }
+function updateZoneRisks(rain){
+  const mm=parseInt(rain);
+  zones.forEach(z=>{
+    const fr=z.floodRisk;
+    const base=fr*4;
+    const rainFactor=(mm/200)*4;
+    const combined=(base*0.6+rainFactor*0.4);
+    z.risk=Math.min(4,Math.round(combined));
+    const colors=['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'];
+    const c=colors[z.risk];
+    if(zonePolygons[z.id]) zonePolygons[z.id].setStyle({color:c,fillColor:c});
+    if(markers[z.id]) markers[z.id].setStyle({fillColor:c});
   });
   renderZoneList();
 }
 
-function updateStats(rain) {
-  const mm = parseInt(rain);
+function updateStats(rain){
+  const mm=parseInt(rain);
   updateZoneRisks(mm);
-  const flooded = zones.filter(z => z.risk >= 4).length;
-  const atRisk = zones.filter(z => z.risk >= 2 && z.risk < 4).length;
-  const totalPop = zones.filter(z => z.risk >= 2).reduce((s,z) => s + z.pop, 0);
-  const openR = evakRoutes.filter(r => r.status === 'open').length;
-
-  const ps = totalPop >= 1000000 ? (totalPop/1000000).toFixed(1)+'M' : totalPop > 1000 ? (totalPop/1000).toFixed(0)+'K' : totalPop;
-
-  const sf = document.getElementById('statFlooded');
-  const sr = document.getElementById('statRisk');
-  const sp = document.getElementById('statPop');
-  const sor = document.getElementById('statRoutes');
-  if (sf) sf.textContent = flooded;
-  if (sr) sr.textContent = atRisk;
-  if (sp) sp.textContent = ps;
-  if (sor) sor.textContent = openR;
+  const flooded=zones.filter(z=>z.risk>=4).length;
+  const atRisk=zones.filter(z=>z.risk>=2&&z.risk<4).length;
+  const totalPop=zones.filter(z=>z.risk>=2).reduce((s,z)=>s+z.pop,0);
+  const openR=evakRoutes.filter(r=>r.status==='open').length;
+  const ps=totalPop>=1000000?(totalPop/1000000).toFixed(1)+'M':totalPop>1000?(totalPop/1000).toFixed(0)+'K':totalPop;
+  const sf=document.getElementById('statFlooded');
+  const sr=document.getElementById('statRisk');
+  const sp=document.getElementById('statPop');
+  const sor=document.getElementById('statRoutes');
+  if(sf) sf.textContent=flooded;
+  if(sr) sr.textContent=atRisk;
+  if(sp) sp.textContent=ps;
+  if(sor) sor.textContent=openR;
 }
 
-function renderGauges() {
-  const container = document.getElementById('gaugeList');
-  if (!container) return;
-  container.innerHTML = rivers.map(r => {
-    const lv = Math.min(r.maxLevel, r.baseLevel + (rainLevel / 200) * r.maxLevel * 0.9);
-    const pct = Math.min(100, (lv / r.maxLevel) * 100);
-    const c = pct > 80 ? '#ff2d55' : pct > 60 ? '#ff6b35' : pct > 40 ? '#ffd600' : '#00e676';
-    return `<div class="gauge-row"><span class="gauge-name">${r.name}</span>
-      <div class="gauge-bar-wrap"><div class="gauge-bar-fill" style="width:${pct}%;background:${c};"></div></div>
-      <span class="gauge-pct" style="color:${c}">${lv.toFixed(1)}m</span></div>`;
+function renderGauges(){
+  const container=document.getElementById('gaugeList');
+  if(!container) return;
+  container.innerHTML=rivers.map(r=>{
+    const lv=Math.min(r.maxLevel,r.baseLevel+(rainLevel/200)*r.maxLevel*0.9);
+    const pct=Math.min(100,(lv/r.maxLevel)*100);
+    const c=pct>80?'#ff2d55':pct>60?'#ff6b35':pct>40?'#ffd600':'#00e676';
+    return `<div class="gauge-row"><span class="gauge-name">${r.name}</span><div class="gauge-bar-wrap"><div class="gauge-bar-fill" style="width:${pct}%;background:${c};"></div></div><span class="gauge-pct" style="color:${c}">${lv.toFixed(1)}m</span></div>`;
   }).join('');
 }
 
-function updateBarChart() {
-  const container = document.getElementById('barChartContent');
-  if (!container) return;
-  const sorted = [...zones].sort((a,b) => b.risk - a.risk || b.floodRisk - a.floodRisk).slice(0, 8);
-  container.innerHTML = sorted.map(z => {
-    const pct = [0,25,50,75,100][z.risk];
-    const color = ['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'][z.risk];
-    return `<div class="bar-row"><span class="bar-name">${z.name}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
-      <span class="bar-pct" style="color:${color}">${pct}%</span></div>`;
+function updateBarChart(){
+  const container=document.getElementById('barChartContent');
+  if(!container) return;
+  const sorted=[...zones].sort((a,b)=>b.risk-a.risk||b.floodRisk-a.floodRisk).slice(0,8);
+  container.innerHTML=sorted.map(z=>{
+    const pct=[0,25,50,75,100][z.risk];
+    const color=['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'][z.risk];
+    return `<div class="bar-row"><span class="bar-name">${z.name}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="bar-pct" style="color:${color}">${pct}%</span></div>`;
   }).join('');
 }
 
-function getEvakRoutes(zoneId, state) {
-  const byState = {
-    'KELANTAN': [{name:'East Coast Expressway (LPT)',detail:'Via Kota Bharu North',status:'caution'},{name:'Jln Pasir Mas',detail:'Bridge 3 open',status:'open'},{name:'Jln Kuala Krai',detail:'Highland route',status:'open'}],
-    'TERENGGANU': [{name:'LPT2 Highway',detail:'Towards Kl direction',status:'open'},{name:'Jln Kemasik',detail:'Coastal bypass',status:'caution'},{name:'Jln Chukai',detail:'River crossing OK',status:'open'}],
-    'JOHOR': [{name:'North-South Highway',detail:'Via Senai interchange',status:'open'},{name:'Jln Kota Tinggi',detail:'Monitor water level',status:'caution'},{name:'Jln Mersing',detail:'Detour advised',status:'closed'}],
-    'PAHANG': [{name:'East Coast Expressway',detail:'Main artery clear',status:'open'},{name:'Jln Kuantan-KL',detail:'Via Bentong Pass',status:'caution'},{name:'Jln Rompin',detail:'Flooded — avoid',status:'closed'}],
-    'SELANGOR': [{name:'NKVE Highway',detail:'All lanes clear',status:'open'},{name:'LDP Expressway',detail:'Puchong section congested',status:'caution'},{name:'KESAS Highway',detail:'Klang section flooded',status:'closed'}],
-    'PENANG': [{name:'E1 North-South Highway',detail:'Via Butterworth interchange',status:'open'},{name:'Penang Bridge',detail:'Standard flow',status:'open'},{name:'Jln Perai',detail:'Industrial bypass',status:'caution'}],
-    'SABAH': [{name:'Jalan Mat Salleh',detail:'Via Kota Belud',status:'open'},{name:'Pan Borneo Highway',detail:'Km 45 monitoring',status:'caution'},{name:'Jln Sandakan',detail:'Landslide risk high',status:'closed'}],
-    'SARAWAK': [{name:'Pan Borneo Sarawak',detail:'Main Kuching-Sibu route',status:'open'},{name:'Jln Kuching-Serian',detail:'River overflow risk',status:'caution'},{name:'Jln Kuching-Bau',detail:'Clear',status:'open'}],
-    'PERAK': [{name:'North-South Highway',detail:'All clear',status:'open'},{name:'Jln Ipoh-Lumut',detail:'Banjir at KM 22',status:'caution'},{name:'Jln Pengkalan Hulu',detail:'Border route',status:'open'}],
-    'KEDAH': [{name:'North-South Highway',detail:'Alor Setar exit',status:'open'},{name:'Jln Alor Setar-Baling',detail:'Watch for flood',status:'caution'},{name:'Jln Kubang Pasu',detail:'Clear',status:'open'}],
+function getEvakRoutes(zoneId,state){
+  const byState={
+    'KELANTAN':[{name:'East Coast Expressway (LPT)',detail:'Via Kota Bharu North',status:'caution'},{name:'Jln Pasir Mas',detail:'Bridge 3 open',status:'open'},{name:'Jln Kuala Krai',detail:'Highland route',status:'open'}],
+    'TERENGGANU':[{name:'LPT2 Highway',detail:'Towards KL direction',status:'open'},{name:'Jln Kemasik',detail:'Coastal bypass',status:'caution'},{name:'Jln Chukai',detail:'River crossing OK',status:'open'}],
+    'JOHOR':[{name:'North-South Highway',detail:'Via Senai interchange',status:'open'},{name:'Jln Kota Tinggi',detail:'Monitor water level',status:'caution'},{name:'Jln Mersing',detail:'Detour advised',status:'closed'}],
+    'PAHANG':[{name:'East Coast Expressway',detail:'Main artery clear',status:'open'},{name:'Jln Kuantan-KL',detail:'Via Bentong Pass',status:'caution'},{name:'Jln Rompin',detail:'Flooded — avoid',status:'closed'}],
+    'SELANGOR':[{name:'NKVE Highway',detail:'All lanes clear',status:'open'},{name:'LDP Expressway',detail:'Puchong section congested',status:'caution'},{name:'KESAS Highway',detail:'Klang section flooded',status:'closed'}],
+    'PENANG':[{name:'E1 North-South Highway',detail:'Via Butterworth interchange',status:'open'},{name:'Penang Bridge',detail:'Standard flow',status:'open'},{name:'Jln Perai',detail:'Industrial bypass',status:'caution'}],
+    'SABAH':[{name:'Jalan Mat Salleh',detail:'Via Kota Belud',status:'open'},{name:'Pan Borneo Highway',detail:'Km 45 monitoring',status:'caution'},{name:'Jln Sandakan',detail:'Landslide risk high',status:'closed'}],
+    'SARAWAK':[{name:'Pan Borneo Sarawak',detail:'Main Kuching-Sibu route',status:'open'},{name:'Jln Kuching-Serian',detail:'River overflow risk',status:'caution'},{name:'Jln Kuching-Bau',detail:'Clear',status:'open'}],
+    'PERAK':[{name:'North-South Highway',detail:'All clear',status:'open'},{name:'Jln Ipoh-Lumut',detail:'Banjir at KM 22',status:'caution'},{name:'Jln Pengkalan Hulu',detail:'Border route',status:'open'}],
+    'KEDAH':[{name:'North-South Highway',detail:'Alor Setar exit',status:'open'},{name:'Jln Alor Setar-Baling',detail:'Watch for flood',status:'caution'},{name:'Jln Kubang Pasu',detail:'Clear',status:'open'}],
   };
-
-  return byState[state] || evakRoutes;
+  return byState[state]||evakRoutes;
 }
 
-function updateRoutePanel(zoneId, zoneName, state) {
-  const container = document.getElementById('routeList');
-  if (!container) return;
-  const routes = (zoneId && state) ? getEvakRoutes(zoneId, state) : evakRoutes;
-  const zn = zoneName || 'KL Default';
-  container.innerHTML = routes.map((r, i) => `
-    <div class="route-item">
-      <div class="route-num">${i+1}</div>
-      <div class="route-info"><div class="route-name">${r.name}</div><div class="route-detail">${r.detail}</div></div>
-      <span class="route-status route-${r.status}">${r.status.toUpperCase()}</span>
-    </div>`).join('');
+function updateRoutePanel(zoneId,zoneName,state){
+  const container=document.getElementById('routeList');
+  if(!container) return;
+  const routes=(zoneId&&state)?getEvakRoutes(zoneId,state):evakRoutes;
+  container.innerHTML=routes.map((r,i)=>`<div class="route-item"><div class="route-num">${i+1}</div><div class="route-info"><div class="route-name">${r.name}</div><div class="route-detail">${r.detail}</div></div><span class="route-status route-${r.status}">${r.status.toUpperCase()}</span></div>`).join('');
 }
 
-function renderAlertFeed() {
-  const feed = document.getElementById('alertFeed');
-  if (!feed) return;
-  feed.innerHTML = alertMessages.map(a => `
-    <div class="alert-item">
-      <div class="alert-dot" style="background:${dotColors[a.type]||'#00e5ff'}"></div>
-      <div class="alert-content"><div class="alert-msg">${a.msg}</div><div class="alert-time">${a.time}</div></div>
-    </div>`).join('');
+function renderAlertFeed(){
+  const feed=document.getElementById('alertFeed');
+  if(!feed) return;
+  feed.innerHTML=alertMessages.map(a=>`<div class="alert-item"><div class="alert-dot" style="background:${dotColors[a.type]||'#00e5ff'}"></div><div class="alert-content"><div class="alert-msg">${a.msg}</div><div class="alert-time">${a.time}</div></div></div>`).join('');
 }
 
-function startAlertRotation() {
-  setInterval(() => {
-    const now = new Date();
-    const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const msgs = [
+function startAlertRotation(){
+  setInterval(()=>{
+    const now=new Date();
+    const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const msgs=[
       'Automated sensor check complete. All 142 stations reporting.',
       'Water level at Sg. Batu rising 0.3m in last 15 minutes.',
       'NADMA advisory: Check your nearest flood evacuation center.',
-      `Rainfall forecast: ${rainLevel > 100 ? 'Heavy to very heavy' : rainLevel > 50 ? 'Moderate to heavy' : 'Light to moderate'} rain expected in next 2 hours.`,
+      `Rainfall forecast: ${rainLevel>100?'Heavy to very heavy':rainLevel>50?'Moderate to heavy':'Light to moderate'} rain expected in next 2 hours.`,
       'DID Klang Valley flood portal updated with latest readings.',
     ];
-    const msg = msgs[Math.floor(Math.random() * msgs.length)];
-    alertMessages.unshift({msg, time: t, type: rainLevel > 100 ? 'warning' : 'info'});
-    if (alertMessages.length > 12) alertMessages.pop();
+    const msg=msgs[Math.floor(Math.random()*msgs.length)];
+    alertMessages.unshift({msg,time:t,type:rainLevel>100?'warning':'info'});
+    if(alertMessages.length>12) alertMessages.pop();
     renderAlertFeed();
-  }, 15000);
+    const sheet=document.getElementById('statsSheet');
+    if(sheet&&sheet.classList.contains('open')&&_currentSheetTab==='alerts') renderSheetBody('alerts');
+  },15000);
 }
 
-function updateAlertCard(val) {
-  const mm = parseInt(val);
-  const card = document.getElementById('alertCard');
-  const title = document.getElementById('alertTitle');
-  const desc = document.getElementById('alertDesc');
-  if (!card || !title || !desc) return;
-
-  card.className = 'alert-card';
-  if (mm < 25) {
-    card.classList.add('normal'); title.textContent = '● NORMAL';
-    desc.textContent = 'Rainfall within safe parameters. All monitoring stations operational.';
-  } else if (mm < 75) {
-    card.classList.add('watch'); title.textContent = '◉ WATCH';
-    desc.textContent = 'Moderate rainfall detected. Monitoring stations on alert. Flood risk elevated in low-lying areas.';
-  } else if (mm < 125) {
-    card.classList.add('warning'); title.textContent = '⚠ WARNING';
-    desc.textContent = 'Heavy rainfall. Multiple zones at elevated risk. Evacuation on standby. Monitor water levels closely.';
-  } else {
-    card.classList.add('danger'); title.textContent = '✦ DANGER';
-    desc.textContent = 'EXTREME RAINFALL. Immediate evacuation recommended for flood-prone areas. Emergency services activated.';
-  }
-
-  const dot = document.getElementById('systemDot');
-  const status = document.getElementById('systemStatus');
-  if (dot && status) {
-    if (mm >= 125) { dot.style.background = '#ff2d55'; dot.style.boxShadow = 'var(--glow-red)'; status.textContent = 'EMERGENCY MODE'; status.style.color = '#ff2d55'; }
-    else if (mm >= 75) { dot.style.background = '#ff6b35'; dot.style.boxShadow = ''; status.textContent = 'ALERT MODE'; status.style.color = '#ff6b35'; }
-    else { dot.style.background = 'var(--accent-green)'; dot.style.boxShadow = 'var(--glow-green)'; status.textContent = 'SYSTEM ONLINE'; status.style.color = 'var(--accent-green)'; }
+function updateAlertCard(val){
+  const mm=parseInt(val);
+  const card=document.getElementById('alertCard');
+  const title=document.getElementById('alertTitle');
+  const desc=document.getElementById('alertDesc');
+  if(!card||!title||!desc) return;
+  card.className='alert-card';
+  if(mm<25){card.classList.add('normal');title.textContent='● NORMAL';desc.textContent='Rainfall within safe parameters. All monitoring stations operational.';}
+  else if(mm<75){card.classList.add('watch');title.textContent='◉ WATCH';desc.textContent='Moderate rainfall detected. Monitoring stations on alert. Flood risk elevated in low-lying areas.';}
+  else if(mm<125){card.classList.add('warning');title.textContent='⚠ WARNING';desc.textContent='Heavy rainfall. Multiple zones at elevated risk. Evacuation on standby. Monitor water levels closely.';}
+  else{card.classList.add('danger');title.textContent='✦ DANGER';desc.textContent='EXTREME RAINFALL. Immediate evacuation recommended for flood-prone areas. Emergency services activated.';}
+  const dot=document.getElementById('systemDot');
+  const status=document.getElementById('systemStatus');
+  if(dot&&status){
+    if(mm>=125){dot.style.background='#ff2d55';dot.style.boxShadow='var(--glow-red)';status.textContent='EMERGENCY MODE';status.style.color='#ff2d55';}
+    else if(mm>=75){dot.style.background='#ff6b35';dot.style.boxShadow='';status.textContent='ALERT MODE';status.style.color='#ff6b35';}
+    else{dot.style.background='var(--accent-green)';dot.style.boxShadow='var(--glow-green)';status.textContent='SYSTEM ONLINE';status.style.color='var(--accent-green)';}
   }
 }
 
-function renderZoneList() {
-  const container = document.getElementById('zoneList');
-  if (!container) return;
-  let filtered = zones;
-  if (stateFilter !== 'ALL') filtered = filtered.filter(z => z.state === stateFilter);
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(z => z.name.toLowerCase().includes(q) || z.area.toLowerCase().includes(q) || z.state.toLowerCase().includes(q));
-  }
-  filtered = filtered.sort((a,b) => b.risk - a.risk);
-
-  const badge = document.getElementById('zoneCountBadge');
-  if (badge) badge.textContent = `${filtered.length} DAERAH`;
-
-  container.innerHTML = filtered.map(z => {
-    const badges = ['badge-safe','badge-safe','badge-watch','badge-risk','badge-flood'];
-    const labels = ['SAFE','LOW','WATCH','HIGH','FLOOD'];
-    return `<div class="zone-item ${selectedZoneId === z.id ? 'active' : ''}" data-id="${z.id}" onclick="selectZone('${z.id}')">
-      <div><div class="zone-name">${z.name}</div><div class="zone-area">${z.area} · ${z.state}</div></div>
-      <span class="zone-badge ${badges[z.risk]}">${labels[z.risk]}</span>
-    </div>`;
+function renderZoneList(){
+  const container=document.getElementById('zoneList');
+  if(!container) return;
+  let filtered=zones;
+  if(stateFilter!=='ALL') filtered=filtered.filter(z=>z.state===stateFilter);
+  if(searchQuery){const q=searchQuery.toLowerCase();filtered=filtered.filter(z=>z.name.toLowerCase().includes(q)||z.area.toLowerCase().includes(q)||z.state.toLowerCase().includes(q));}
+  filtered=filtered.sort((a,b)=>b.risk-a.risk);
+  const badge=document.getElementById('zoneCountBadge');
+  if(badge) badge.textContent=`${filtered.length} DAERAH`;
+  container.innerHTML=filtered.map(z=>{
+    const badges=['badge-safe','badge-safe','badge-watch','badge-risk','badge-flood'];
+    const labels=['SAFE','LOW','WATCH','HIGH','FLOOD'];
+    return `<div class="zone-item ${selectedZoneId===z.id?'active':''}" data-id="${z.id}"><div><div class="zone-name">${z.name}</div><div class="zone-area">${z.area} · ${z.state}</div></div><span class="zone-badge ${badges[z.risk]}">${labels[z.risk]}</span></div>`;
   }).join('');
-}
-
-function buildStateFilter() {
-  const states = [...new Set(zones.map(z => z.state))].sort();
-  allStates = states;
-  const container = document.getElementById('stateFilter');
-  if (!container) return;
-  container.innerHTML = '<button class="state-btn active" onclick="setStateFilter(\'ALL\')">ALL</button>';
-  states.forEach(s => {
-    container.innerHTML += `<button class="state-btn" onclick="setStateFilter('${s}')">${s}</button>`;
+  // Re-attach click events via event delegation
+  container.querySelectorAll('.zone-item').forEach(el=>{
+    el.addEventListener('click',function(){selectZone(this.dataset.id);});
   });
 }
 
-function setStateFilter(state) {
-  stateFilter = state;
-  document.querySelectorAll('.state-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent === state);
+function buildStateFilter(){
+  const states=[...new Set(zones.map(z=>z.state))].sort();
+  const container=document.getElementById('stateFilter');
+  if(!container) return;
+  container.innerHTML='<button class="state-btn active">ALL</button>';
+  states.forEach(s=>{container.innerHTML+=`<button class="state-btn">${s}</button>`;});
+  container.querySelectorAll('.state-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){setStateFilter(this.textContent);});
   });
+}
+
+function setStateFilter(state){
+  stateFilter=state;
+  document.querySelectorAll('.state-btn').forEach(b=>{b.classList.toggle('active',b.textContent===state);});
   renderZoneList();
 }
 
-function filterZones() {
-  const sb = document.getElementById('searchBar');
-  if (sb) searchQuery = sb.value;
+function filterZones(){
+  const sb=document.getElementById('searchBar');
+  if(sb) searchQuery=sb.value;
   renderZoneList();
 }
 
-// Rain panel
-function renderRadar() {
-  const grid = document.getElementById('radarGrid');
-  if (!grid) return;
-  const cells = [];
-  for (let i = 0; i < 48; i++) {
-    const div = document.createElement('div');
-    div.className = 'radar-cell';
-    div.style.background = rainToColor(Math.random() * rainLevel * 1.2);
+function renderRadar(){
+  const grid=document.getElementById('radarGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  for(let i=0;i<48;i++){
+    const div=document.createElement('div');
+    div.className='radar-cell';
+    div.style.background=rainToColor(Math.random()*rainLevel*1.2);
     grid.appendChild(div);
-    cells.push(div);
   }
-
-  const statsRow = document.getElementById('rainStatsRow');
-  if (statsRow) {
-    statsRow.innerHTML = `
-      <div class="rain-stat-item"><div class="rain-stat-val">${rainLevel}</div><div class="rain-stat-lbl">CURRENT mm/hr</div></div>
-      <div class="rain-stat-item"><div class="rain-stat-val">${Math.round(rainLevel*1.15)}</div><div class="rain-stat-lbl">PEAK mm/hr</div></div>
-      <div class="rain-stat-item"><div class="rain-stat-val">${Math.round(rainLevel*0.6)}</div><div class="rain-stat-lbl">AVG mm/hr</div></div>
-      <div class="rain-stat-item"><div class="rain-stat-val">${(rainLevel*0.15).toFixed(1)}</div><div class="rain-stat-lbl">ACCUM mm</div></div>`;
-  }
-
-  const ts = document.getElementById('radarTimestamp');
-  if (ts) ts.textContent = new Date().toLocaleTimeString('en-MY', {hour12:false});
+  updateRadarStats();
 }
 
-function updateRadar() {
-  const cells = document.querySelectorAll('.radar-cell');
-  cells.forEach(c => { c.style.background = rainToColor(Math.random() * rainLevel * 1.2); });
-  const statsRow = document.getElementById('rainStatsRow');
-  if (statsRow) {
-    statsRow.innerHTML = `
-      <div class="rain-stat-item"><div class="rain-stat-val">${rainLevel}</div><div class="rain-stat-lbl">CURRENT mm/hr</div></div>
-      <div class="rain-stat-item"><div class="rain-stat-val">${Math.round(rainLevel*1.15)}</div><div class="rain-stat-lbl">PEAK mm/hr</div></div>
-      <div class="rain-stat-item"><div class="rain-stat-val">${Math.round(rainLevel*0.6)}</div><div class="rain-stat-lbl">AVG mm/hr</div></div>
-      <div class="rain-stat-item"><div class="rain-stat-val">${(rainLevel*0.15).toFixed(1)}</div><div class="rain-stat-lbl">ACCUM mm</div></div>`;
-  }
-  const ts = document.getElementById('radarTimestamp');
-  if (ts) ts.textContent = new Date().toLocaleTimeString('en-MY', {hour12:false});
+function updateRadar(){
+  document.querySelectorAll('.radar-cell').forEach(c=>{c.style.background=rainToColor(Math.random()*rainLevel*1.2);});
+  updateRadarStats();
 }
 
-function rainToColor(mm) {
-  if (mm < 5) return '#020c18';
-  if (mm < 15) return '#071f3a';
-  if (mm < 30) return '#0d3a5c';
-  if (mm < 50) return '#1565c0';
-  if (mm < 75) return '#4fc3f7';
-  if (mm < 100) return '#ffd600';
-  if (mm < 140) return '#ff6b35';
+function updateRadarStats(){
+  const statsRow=document.getElementById('rainStatsRow');
+  if(statsRow) statsRow.innerHTML=`<div class="rain-stat-item"><div class="rain-stat-val">${rainLevel}</div><div class="rain-stat-lbl">CURRENT mm/hr</div></div><div class="rain-stat-item"><div class="rain-stat-val">${Math.round(rainLevel*1.15)}</div><div class="rain-stat-lbl">PEAK mm/hr</div></div><div class="rain-stat-item"><div class="rain-stat-val">${Math.round(rainLevel*0.6)}</div><div class="rain-stat-lbl">AVG mm/hr</div></div><div class="rain-stat-item"><div class="rain-stat-val">${(rainLevel*0.15).toFixed(1)}</div><div class="rain-stat-lbl">ACCUM mm</div></div>`;
+  const ts=document.getElementById('radarTimestamp');
+  if(ts) ts.textContent=new Date().toLocaleTimeString('en-MY',{hour12:false});
+}
+
+function rainToColor(mm){
+  if(mm<5) return '#020c18';
+  if(mm<15) return '#071f3a';
+  if(mm<30) return '#0d3a5c';
+  if(mm<50) return '#1565c0';
+  if(mm<75) return '#4fc3f7';
+  if(mm<100) return '#ffd600';
+  if(mm<140) return '#ff6b35';
   return '#ff2d55';
 }
 
-function setForecastTab(h) {
-  forecastHour = h;
-  document.querySelectorAll('.ftab').forEach((b,i) => {
-    b.classList.toggle('active', [1,3,6,12,24][i] === h);
-  });
+function setForecastTab(h){
+  forecastHour=h;
+  document.querySelectorAll('.ftab').forEach(b=>{b.classList.toggle('active',parseInt(b.dataset.h)===h);});
   updateAIForecast();
 }
 
-function updateAIForecast() {
-  const content = document.getElementById('forecastContent');
-  if (!content) return;
-
-  const multiplier = {1:1,3:1.15,6:1.3,12:1.5,24:1.7}[forecastHour] || 1;
-  const topZones = [...zones].sort((a,b) => (b.floodRisk * b.pop) - (a.floodRisk * a.pop)).slice(0, 8);
-
-  content.innerHTML = topZones.map(z => {
-    const pct = Math.min(100, Math.round(z.floodRisk * 100 * multiplier * (1 + rainLevel/400)));
-    const c = pct > 75 ? '#ff2d55' : pct > 50 ? '#ff6b35' : pct > 30 ? '#ffd600' : '#4fc3f7';
-    return `<div class="forecast-zone-row">
-      <span class="fz-name">${z.name}</span>
-      <div class="fz-bar-wrap"><div class="fz-bar" style="width:${pct}%;background:${c}"></div></div>
-      <span class="fz-risk" style="color:${c}">${pct}%</span>
-    </div>`;
+function updateAIForecast(){
+  const content=document.getElementById('forecastContent');
+  if(!content) return;
+  const multiplier={1:1,3:1.15,6:1.3,12:1.5,24:1.7}[forecastHour]||1;
+  const topZones=[...zones].sort((a,b)=>(b.floodRisk*b.pop)-(a.floodRisk*a.pop)).slice(0,8);
+  content.innerHTML=topZones.map(z=>{
+    const pct=Math.min(100,Math.round(z.floodRisk*100*multiplier*(1+rainLevel/400)));
+    const c=pct>75?'#ff2d55':pct>50?'#ff6b35':pct>30?'#ffd600':'#4fc3f7';
+    return `<div class="forecast-zone-row"><span class="fz-name">${z.name}</span><div class="fz-bar-wrap"><div class="fz-bar" style="width:${pct}%;background:${c}"></div></div><span class="fz-risk" style="color:${c}">${pct}%</span></div>`;
   }).join('');
-
-  const conf = Math.max(60, 95 - forecastHour * 1.5 - (rainLevel > 100 ? 5 : 0));
-  const cb = document.getElementById('confBar');
-  const cp = document.getElementById('confPct');
-  if (cb) cb.style.width = conf + '%';
-  if (cp) cp.textContent = Math.round(conf) + '%';
-
-  const warnBox = document.getElementById('aiWarningBox');
-  if (warnBox) {
-    const maxRisk = Math.max(...topZones.map(z => z.floodRisk));
-    if (rainLevel > 125 || maxRisk > 0.85) {
-      warnBox.className = 'ai-warning-box warn-danger';
-      warnBox.textContent = `⚠ HIGH FLOOD PROBABILITY in ${forecastHour}H. Immediate precautionary measures advised.`;
-    } else if (rainLevel > 60 || maxRisk > 0.6) {
-      warnBox.className = 'ai-warning-box warn-caution';
-      warnBox.textContent = `◉ ELEVATED RISK in ${forecastHour}H window. Monitor conditions closely.`;
-    } else {
-      warnBox.className = 'ai-warning-box warn-ok';
-      warnBox.textContent = `✓ LOW-MODERATE risk in ${forecastHour}H. Standard monitoring active.`;
-    }
+  const conf=Math.max(60,95-forecastHour*1.5-(rainLevel>100?5:0));
+  const cb=document.getElementById('confBar');
+  const cp=document.getElementById('confPct');
+  if(cb) cb.style.width=conf+'%';
+  if(cp) cp.textContent=Math.round(conf)+'%';
+  const warnBox=document.getElementById('aiWarningBox');
+  if(warnBox){
+    const maxRisk=Math.max(...topZones.map(z=>z.floodRisk));
+    if(rainLevel>125||maxRisk>0.85){warnBox.className='ai-warning-box warn-danger';warnBox.textContent=`⚠ HIGH FLOOD PROBABILITY in ${forecastHour}H. Immediate precautionary measures advised.`;}
+    else if(rainLevel>60||maxRisk>0.6){warnBox.className='ai-warning-box warn-caution';warnBox.textContent=`◉ ELEVATED RISK in ${forecastHour}H window. Monitor conditions closely.`;}
+    else{warnBox.className='ai-warning-box warn-ok';warnBox.textContent=`✓ LOW-MODERATE risk in ${forecastHour}H. Standard monitoring active.`;}
   }
-
-  const chart = document.getElementById('forecastChart');
-  const aiTs = document.getElementById('aiUpdateTime');
-  if (aiTs) aiTs.textContent = new Date().toLocaleTimeString('en-MY', {hour12:false});
-  if (chart) {
-    const hours = [1,3,6,12,24];
-    chart.innerHTML = hours.map(h => {
-      const mult = {1:1,3:1.15,6:1.3,12:1.5,24:1.7}[h] || 1;
-      const avgRisk = zones.reduce((s,z) => s + z.floodRisk * mult * (1 + rainLevel/400), 0) / zones.length;
-      const ht = Math.min(95, Math.round(avgRisk * 90));
-      const c = ht > 70 ? '#ff2d55' : ht > 45 ? '#ff6b35' : ht > 25 ? '#ffd600' : '#4fc3f7';
+  const aiTs=document.getElementById('aiUpdateTime');
+  if(aiTs) aiTs.textContent=new Date().toLocaleTimeString('en-MY',{hour12:false});
+  const chart=document.getElementById('forecastChart');
+  if(chart){
+    const hours=[1,3,6,12,24];
+    chart.innerHTML=hours.map(h=>{
+      const mult={1:1,3:1.15,6:1.3,12:1.5,24:1.7}[h]||1;
+      const avgRisk=zones.reduce((s,z)=>s+z.floodRisk*mult*(1+rainLevel/400),0)/zones.length;
+      const ht=Math.min(95,Math.round(avgRisk*90));
+      const c=ht>70?'#ff2d55':ht>45?'#ff6b35':ht>25?'#ffd600':'#4fc3f7';
       return `<div class="fc-bar-wrap"><div class="fc-bar" style="height:${ht}%;background:${c}"></div><span class="fc-time">+${h}H</span></div>`;
     }).join('');
   }
 }
 
-function togglePanel(name) {
-  const panelId = 'panel-' + name;
-  const btnId = 'btn-' + name;
-  const panel = document.getElementById(panelId);
-  const btn = document.getElementById(btnId);
-  if (!panel) return;
-
-  if (openPanel && openPanel !== panelId) {
-    const old = document.getElementById(openPanel);
-    if (old) old.style.display = 'none';
-    const oldBtn = document.getElementById(openPanel.replace('panel-','btn-'));
-    if (oldBtn) oldBtn.classList.remove('panel-open');
+function togglePanel(name){
+  const panelId='panel-'+name;
+  const btnId='btn-'+name;
+  const panel=document.getElementById(panelId);
+  const btn=document.getElementById(btnId);
+  if(!panel) return;
+  if(openPanel&&openPanel!==panelId){
+    const old=document.getElementById(openPanel);
+    if(old) old.style.display='none';
+    const oldBtn=document.getElementById(openPanel.replace('panel-','btn-'));
+    if(oldBtn) oldBtn.classList.remove('panel-open');
   }
-
-  const isOpen = panel.style.display !== 'none';
-  panel.style.display = isOpen ? 'none' : 'flex';
-  if (btn) btn.classList.toggle('panel-open', !isOpen);
-  openPanel = isOpen ? null : panelId;
+  const isOpen=panel.style.display!=='none';
+  panel.style.display=isOpen?'none':'flex';
+  if(btn) btn.classList.toggle('panel-open',!isOpen);
+  openPanel=isOpen?null:panelId;
 }
 
-// Start
-window.addEventListener('load', init);
-</script>
-
-<script>
-// ===== MOBILE ENHANCEMENTS =====
-(function() {
-
-function toggleDrawer() {
-  const sb = document.getElementById('sidebarLeft');
-  const ov = document.getElementById('drawerOverlay');
-  const btn = document.getElementById('hamburgerBtn');
-  if (!sb || !ov || !btn) return;
-  const isOpen = sb.classList.contains('open');
-  if (isOpen) {
-    sb.classList.remove('open'); ov.classList.remove('visible'); btn.classList.remove('open');
-  } else {
-    sb.classList.add('open'); ov.classList.add('visible'); btn.classList.add('open');
+// ===== MOBILE FUNCTIONS =====
+function toggleDrawer(){
+  const sb=document.getElementById('sidebarLeft');
+  const ov=document.getElementById('drawerOverlay');
+  const btn=document.getElementById('hamburgerBtn');
+  if(!sb||!ov||!btn) return;
+  const isOpen=sb.classList.contains('open');
+  if(isOpen){
+    sb.classList.remove('open');
+    ov.classList.remove('visible');
+    btn.classList.remove('open');
+  }else{
+    sb.classList.add('open');
+    ov.classList.add('visible');
+    btn.classList.add('open');
   }
 }
 
-function closeDrawer() {
-  const sb = document.getElementById('sidebarLeft');
-  const ov = document.getElementById('drawerOverlay');
-  const btn = document.getElementById('hamburgerBtn');
-  if (sb) sb.classList.remove('open');
-  if (ov) ov.classList.remove('visible');
-  if (btn) btn.classList.remove('open');
+function closeDrawer(){
+  const sb=document.getElementById('sidebarLeft');
+  const ov=document.getElementById('drawerOverlay');
+  const btn=document.getElementById('hamburgerBtn');
+  if(sb) sb.classList.remove('open');
+  if(ov) ov.classList.remove('visible');
+  if(btn) btn.classList.remove('open');
 }
 
-function openSheet() { const s = document.getElementById('statsSheet'); if (s) s.classList.add('open'); }
-function closeSheet() {
-  const s = document.getElementById('statsSheet');
-  if (s) s.classList.remove('open');
-  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
-  const m = document.getElementById('bnav-map');
-  if (m) m.classList.add('active');
+function openSheet(){
+  const s=document.getElementById('statsSheet');
+  if(s) s.classList.add('open');
 }
 
-let _currentSheetTab = 'stats';
-function switchSheetTab(tab) {
-  _currentSheetTab = tab;
-  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
-  const te = document.getElementById('stab-' + tab);
-  if (te) te.classList.add('active');
-  const titles = {stats:'LIVE STATISTICS',gauges:'WATER LEVEL GAUGES',risk:'FLOOD RISK BY AREA',routes:'EVACUATION ROUTES',alerts:'ALERT FEED'};
-  const titleEl = document.getElementById('sheetTitle');
-  if (titleEl) titleEl.textContent = titles[tab] || tab.toUpperCase();
+function closeSheet(){
+  const s=document.getElementById('statsSheet');
+  if(s) s.classList.remove('open');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const m=document.getElementById('bnav-map');
+  if(m) m.classList.add('active');
+}
+
+function switchSheetTab(tab){
+  _currentSheetTab=tab;
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  const te=document.getElementById('stab-'+tab);
+  if(te) te.classList.add('active');
+  const titles={stats:'LIVE STATISTICS',gauges:'WATER LEVEL GAUGES',risk:'FLOOD RISK BY AREA',routes:'EVACUATION ROUTES',alerts:'ALERT FEED'};
+  const titleEl=document.getElementById('sheetTitle');
+  if(titleEl) titleEl.textContent=titles[tab]||tab.toUpperCase();
   renderSheetBody(tab);
 }
 
-function renderSheetBody(tab) {
-  const body = document.getElementById('sheetBody');
-  if (!body) return;
-  const mm = parseInt(document.getElementById('rainSlider').value);
-  if (tab === 'stats') {
-    const flooded = zones.filter(z => z.risk >= 4).length;
-    const atRisk = zones.filter(z => z.risk >= 2 && z.risk < 4).length;
-    const totalPop = zones.filter(z => z.risk >= 2).reduce((s,z) => s + z.pop, 0);
-    const openR = evakRoutes.filter(r => r.status === 'open').length;
-    const ps = totalPop >= 1000000 ? (totalPop/1000000).toFixed(1)+'M' : totalPop > 1000 ? (totalPop/1000).toFixed(0)+'K' : totalPop;
-    body.innerHTML = `<div class="stats-grid"><div class="stat-card red"><div class="stat-value">${flooded}</div><div class="stat-label">Zones Flooded</div></div><div class="stat-card orange"><div class="stat-value">${atRisk}</div><div class="stat-label">At Risk</div></div><div class="stat-card"><div class="stat-value">${ps}</div><div class="stat-label">Pop. Affected</div></div><div class="stat-card green"><div class="stat-value">${openR}</div><div class="stat-label">Routes Open</div></div></div>`;
-  } else if (tab === 'gauges') {
-    body.innerHTML = '<div class="gauge-container">' + rivers.map(r => {
-      const lv = Math.min(r.maxLevel, r.baseLevel + (mm / 200) * r.maxLevel * 0.9);
-      const pct = Math.min(100, (lv / r.maxLevel) * 100);
-      const c = pct > 80 ? '#ff2d55' : pct > 60 ? '#ff6b35' : pct > 40 ? '#ffd600' : '#00e676';
+function renderSheetBody(tab){
+  const body=document.getElementById('sheetBody');
+  if(!body) return;
+  const mm=parseInt(document.getElementById('rainSlider').value);
+  if(tab==='stats'){
+    const flooded=zones.filter(z=>z.risk>=4).length;
+    const atRisk=zones.filter(z=>z.risk>=2&&z.risk<4).length;
+    const totalPop=zones.filter(z=>z.risk>=2).reduce((s,z)=>s+z.pop,0);
+    const openR=evakRoutes.filter(r=>r.status==='open').length;
+    const ps=totalPop>=1000000?(totalPop/1000000).toFixed(1)+'M':totalPop>1000?(totalPop/1000).toFixed(0)+'K':totalPop;
+    body.innerHTML=`<div class="stats-grid"><div class="stat-card red"><div class="stat-value">${flooded}</div><div class="stat-label">Zones Flooded</div></div><div class="stat-card orange"><div class="stat-value">${atRisk}</div><div class="stat-label">At Risk</div></div><div class="stat-card"><div class="stat-value">${ps}</div><div class="stat-label">Pop. Affected</div></div><div class="stat-card green"><div class="stat-value">${openR}</div><div class="stat-label">Routes Open</div></div></div>`;
+  }else if(tab==='gauges'){
+    body.innerHTML='<div class="gauge-container">'+rivers.map(r=>{
+      const lv=Math.min(r.maxLevel,r.baseLevel+(mm/200)*r.maxLevel*0.9);
+      const pct=Math.min(100,(lv/r.maxLevel)*100);
+      const c=pct>80?'#ff2d55':pct>60?'#ff6b35':pct>40?'#ffd600':'#00e676';
       return `<div class="gauge-row"><span class="gauge-name">${r.name}</span><div class="gauge-bar-wrap"><div class="gauge-bar-fill" style="width:${pct}%;background:${c};"></div></div><span class="gauge-pct" style="color:${c}">${lv.toFixed(1)}m</span></div>`;
-    }).join('') + '</div>';
-  } else if (tab === 'risk') {
-    const tz = [...zones].sort((a,b) => b.risk - a.risk || b.floodRisk - a.floodRisk).slice(0, 8);
-    body.innerHTML = '<div class="bar-chart">' + tz.map(z => {
-      const pct = [0,25,50,75,100][z.risk];
-      const color = ['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'][z.risk];
+    }).join('')+'</div>';
+  }else if(tab==='risk'){
+    const tz=[...zones].sort((a,b)=>b.risk-a.risk||b.floodRisk-a.floodRisk).slice(0,8);
+    body.innerHTML='<div class="bar-chart">'+tz.map(z=>{
+      const pct=[0,25,50,75,100][z.risk];
+      const color=['#00e676','#4fc3f7','#ffd600','#ff6b35','#ff2d55'][z.risk];
       return `<div class="bar-row"><span class="bar-name">${z.name}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="bar-pct" style="color:${color}">${pct}%</span></div>`;
-    }).join('') + '</div>';
-  } else if (tab === 'routes') {
-    const z = typeof selectedZoneId !== 'undefined' && selectedZoneId ? zones.find(z => z.id === selectedZoneId) : null;
-    const routes = z ? getEvakRoutes(selectedZoneId, z.state) : evakRoutes;
-    const zn = z ? z.name : 'KL Default';
-    body.innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">${zn.toUpperCase()}</div><div class="route-card">${routes.map((r,i) => `<div class="route-item"><div class="route-num">${i+1}</div><div class="route-info"><div class="route-name">${r.name}</div><div class="route-detail">${r.detail}</div></div><span class="route-status route-${r.status}">${r.status.toUpperCase()}</span></div>`).join('')}</div>`;
-  } else if (tab === 'alerts') {
-    body.innerHTML = '<div class="alerts-feed">' + alertMessages.map(a => `<div class="alert-item"><div class="alert-dot" style="background:${dotColors[a.type]||'#00e5ff'}"></div><div class="alert-content"><div class="alert-msg">${a.msg}</div><div class="alert-time">${a.time}</div></div></div>`).join('') + '</div>';
+    }).join('')+'</div>';
+  }else if(tab==='routes'){
+    const z=selectedZoneId?zones.find(z=>z.id===selectedZoneId):null;
+    const routes=z?getEvakRoutes(selectedZoneId,z.state):evakRoutes;
+    const zn=z?z.name:'KL Default';
+    body.innerHTML=`<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">${zn.toUpperCase()}</div><div class="route-card">${routes.map((r,i)=>`<div class="route-item"><div class="route-num">${i+1}</div><div class="route-info"><div class="route-name">${r.name}</div><div class="route-detail">${r.detail}</div></div><span class="route-status route-${r.status}">${r.status.toUpperCase()}</span></div>`).join('')}</div>`;
+  }else if(tab==='alerts'){
+    body.innerHTML='<div class="alerts-feed">'+alertMessages.map(a=>`<div class="alert-item"><div class="alert-dot" style="background:${dotColors[a.type]||'#00e5ff'}"></div><div class="alert-content"><div class="alert-msg">${a.msg}</div><div class="alert-time">${a.time}</div></div></div>`).join('')+'</div>';
   }
 }
 
-function mobileNav(section) {
-  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
-  if (section === 'map') {
+function mobileNav(section){
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  if(section==='map'){
     document.getElementById('bnav-map').classList.add('active');
     closeSheet();
-  } else if (section === 'rain-ctrl') {
+  }else if(section==='rain-ctrl'){
     document.getElementById('bnav-rain').classList.add('active');
     closeSheet();
     toggleDrawer();
-  } else if (section === 'stats') {
+  }else if(section==='stats'){
     document.getElementById('bnav-stats').classList.add('active');
-    switchSheetTab('stats'); openSheet();
-  } else if (section === 'alerts') {
+    switchSheetTab('stats');openSheet();
+  }else if(section==='alerts'){
     document.getElementById('bnav-alerts').classList.add('active');
-    switchSheetTab('alerts'); openSheet();
-  } else if (section === 'routes') {
+    switchSheetTab('alerts');openSheet();
+  }else if(section==='routes'){
     document.getElementById('bnav-routes').classList.add('active');
-    switchSheetTab('routes'); openSheet();
+    switchSheetTab('routes');openSheet();
   }
 }
 
-// Expose globally
-window.toggleDrawer = toggleDrawer;
-window.closeDrawer = closeDrawer;
-window.openSheet = openSheet;
-window.closeSheet = closeSheet;
-window.switchSheetTab = switchSheetTab;
-window.renderSheetBody = renderSheetBody;
-window.mobileNav = mobileNav;
-
-// Patch selectZone to close drawer on mobile tap
-const _origSelectZone = window.selectZone;
-window.selectZone = function(id) {
-  if (_origSelectZone) _origSelectZone(id);
-  if (window.innerWidth < 900) closeDrawer();
-};
-
-// Refresh sheet when rain changes
-const _origUpdateStats = window.updateStats;
-window.updateStats = function(rain) {
-  if (_origUpdateStats) _origUpdateStats(rain);
-  const sheet = document.getElementById('statsSheet');
-  if (sheet && sheet.classList.contains('open')) renderSheetBody(_currentSheetTab);
-};
-
-window.addEventListener('resize', function() {
-  if (window.innerWidth >= 900) { closeDrawer(); closeSheet(); }
-  if (typeof leafletMap !== 'undefined' && leafletMap) leafletMap.invalidateSize();
-});
-
-})();
+window.addEventListener('load',init);
 </script>
 </body>
 </html>
